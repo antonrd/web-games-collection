@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jumping Guy</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            border: 2px solid black;
+            background-color: #87CEEB;
+            overflow: hidden;
+        }
+        #mountains {
+            position: absolute;
+            bottom: 0;
+            left: 800px; /* Start off-screen */
+            width: 100%;
+            height: 100px; /* Made smaller */
+            z-index: 1;
+        }
+        #mountains::before, #mountains::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+        #mountains::before {
+            border-width: 0 260px 100px 260px; /* Made smaller */
+            border-color: transparent transparent #4D5656 transparent;
+            left: 50%;
+            transform: translateX(-60%);
+        }
+        #mountains::after {
+            border-width: 0 170px 70px 170px; /* Made smaller */
+            border-color: transparent transparent #6E7B7B transparent;
+            left: 10%;
+            transform: translateX(10%);
+        }
+        .cloud {
+            position: absolute;
+            width: 100px;
+            height: 30px;
+            background: #fff;
+            border-radius: 50px;
+            opacity: 0.8;
+            z-index: 2;
+        }
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+        }
+        .cloud::before {
+            width: 50px;
+            height: 50px;
+            top: -25px;
+            left: 15px;
+        }
+        .cloud::after {
+            width: 70px;
+            height: 70px;
+            top: -35px;
+            right: 5px;
+        }
+        .tree {
+            position: absolute;
+            z-index: 2;
+            --tree-height: 70px;
+            --tree-width: 50px;
+            --trunk-height: 15px;
+            --trunk-width: 10px;
+            --tree-color: #228B22; /* ForestGreen */
+            bottom: 0;
+        }
+        .tree::before { /* Trunk */
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: calc(var(--tree-width) / 2 - var(--trunk-width) / 2);
+            width: var(--trunk-width);
+            height: var(--trunk-height);
+            background: #5C4033; /* DarkBrown */
+        }
+        .tree::after { /* Foliage */
+            content: '';
+            position: absolute;
+            bottom: var(--trunk-height);
+            left: 0;
+            width: 0;
+            height: 0;
+            border-left: calc(var(--tree-width) / 2) solid transparent;
+            border-right: calc(var(--tree-width) / 2) solid transparent;
+            border-bottom: var(--tree-height) solid var(--tree-color);
+        }
+        #guy {
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+            width: 50px;
+            height: 65px;
+            animation: run 0.4s infinite ease-in-out;
+            z-index: 10;
+        }
+        .head {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 30px;
+            background: white;
+            border-radius: 50%;
+            border: 1px solid #ccc;
+        }
+        .body {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            border: 1px solid #ccc;
+        }
+        .eye {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: black;
+            border-radius: 50%;
+            top: 10px;
+        }
+        .eye.left {
+            left: 7px;
+        }
+        .eye.right {
+            right: 7px;
+        }
+        .nose {
+            position: absolute;
+            top: 13px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 8px solid orange;
+        }
+        .mouth {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 4px;
+            border-bottom: 1px solid black;
+            border-radius: 0 0 10px 10px;
+        }
+        .button {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: black;
+            border-radius: 50%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .button.b1 { top: 8px; }
+        .button.b2 { top: 16px; }
+        .button.b3 { top: 24px; }
+
+        #guy.jump {
+            animation: jump 0.8s ease-out;
+        }
+        @keyframes run {
+            0% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(1deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+        @keyframes jump {
+            0% { bottom: 0; }
+            50% { bottom: 150px; }
+            100% { bottom: 0; }
+        }
+        .obstacle {
+            position: absolute;
+            bottom: 0;
+            width: 45px;
+            height: 45px;
+            background-color: #8B4513; /* SaddleBrown */
+            z-index: 10;
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            box-shadow: inset -7px -7px 0px 0px #654321;
+        }
+        .gem {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background-color: gold;
+            border-radius: 50%;
+            z-index: 10;
+        }
+        .bullet {
+            position: absolute;
+            width: 15px;
+            height: 5px;
+            background-color: #333;
+            z-index: 10;
+        }
+        #score-board {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            color: white;
+        }
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: red;
+            display: none;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        #pause-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: rgba(255, 255, 255, 0.7);
+            display: none;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="mountains"></div>
+    <div id="guy">
+        <div class="head">
+            <div class="eye left"></div>
+            <div class="eye right"></div>
+            <div class="nose"></div>
+            <div class="mouth"></div>
+        </div>
+        <div class="body">
+            <div class="button b1"></div>
+            <div class="button b2"></div>
+            <div class="button b3"></div>
+        </div>
+    </div>
+    <div id="score-board">
+        <div>Score: <span id="score">0</span></div>
+        <div>Lives: <span id="lives">3</span></div>
+        <div>Bullets: <span id="bullets">0</span></div>
+    </div>
+    <div id="game-over">
+        GAME OVER
+        <button onclick="location.reload()">Restart</button>
+    </div>
+    <div id="pause-screen">PAUSED</div>
+</div>
+
+<script>
+    const guy = document.getElementById('guy');
+    const gameContainer = document.getElementById('game-container');
+    const scoreDisplay = document.getElementById('score');
+    const livesDisplay = document.getElementById('lives');
+    const bulletsDisplay = document.getElementById('bullets');
+    const gameOverDisplay = document.getElementById('game-over');
+    const mountains = document.getElementById('mountains');
+    const pauseScreen = document.getElementById('pause-screen');
+
+    let score = 0;
+    let lives = 3;
+    let bullets = 0;
+    let gameSpeed = 5;
+    let isJumping = false;
+    let gemCounterForBullets = 0;
+    let gameOver = false;
+    let isPaused = false;
+    let passedRocksCount = 0;
+
+    // Sky color variables
+    let skyLightness = 73; // Corresponds to HSL lightness for #87CEEB
+    let lightnessDirection = -1; // -1 for getting darker, 1 for lighter
+    const lightnessStep = 5; // The amount to change lightness by
+    const maxLightness = 73;
+    const minLightness = 20;
+
+    let obstacles = [];
+    let gems = [];
+    let activeBullets = [];
+    let clouds = [];
+    let trees = [];
+
+    let obstacleInterval = 2000; // ms
+
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !isJumping && !gameOver && !isPaused) {
+            jump();
+        }
+        if (e.code === 'KeyX' && bullets > 0 && !gameOver && !isPaused) {
+            shoot();
+        }
+        if (e.code === 'KeyP' && !gameOver) {
+            togglePause();
+        }
+    });
+
+    function togglePause() {
+        isPaused = !isPaused;
+        pauseScreen.style.display = isPaused ? 'block' : 'none';
+        if (!isPaused) {
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    function jump() {
+        isJumping = true;
+        guy.classList.add('jump');
+        setTimeout(() => {
+            guy.classList.remove('jump');
+            isJumping = false;
+        }, 800);
+    }
+
+    function shoot() {
+        bullets--;
+        bulletsDisplay.textContent = bullets;
+
+        const bullet = document.createElement('div');
+        bullet.classList.add('bullet');
+        const guyRect = guy.getBoundingClientRect();
+        const containerRect = gameContainer.getBoundingClientRect();
+
+        bullet.style.left = (guyRect.right - containerRect.left) + 'px';
+        bullet.style.top = (guyRect.top - containerRect.top + guyRect.height / 2) + 'px';
+
+        gameContainer.appendChild(bullet);
+        activeBullets.push(bullet);
+    }
+
+    function createObstacle() {
+        if(gameOver) return;
+
+        // Adjust interval for next obstacle
+        const nextInterval = obstacleInterval - (score * 2);
+        const minInterval = 800 / (gameSpeed / 5);
+        const timeout = Math.max(minInterval, nextInterval);
+
+        if (!isPaused) {
+            const obstacle = document.createElement('div');
+            obstacle.classList.add('obstacle');
+            obstacle.style.left = '800px';
+            gameContainer.appendChild(obstacle);
+            obstacles.push(obstacle);
+        }
+
+        setTimeout(createObstacle, timeout);
+    }
+
+    function createGem() {
+        if(gameOver) return;
+
+        const timeout = 2000 + Math.random() * 2000;
+        if (!isPaused) {
+            const gem = document.createElement('div');
+            gem.classList.add('gem');
+            gem.style.left = '800px';
+            gem.style.bottom = (80 + Math.random() * 100) + 'px';
+            gameContainer.appendChild(gem);
+            gems.push(gem);
+        }
+
+        setTimeout(createGem, timeout);
+    }
+
+    function createCloud() {
+        if(gameOver) return;
+
+        const timeout = 7000 + Math.random() * 7000;
+        if (!isPaused) {
+            const cloud = document.createElement('div');
+            cloud.classList.add('cloud');
+            cloud.style.left = '800px';
+            cloud.style.top = (20 + Math.random() * 80) + 'px';
+            cloud.dataset.speedModifier = (Math.random() * 0.5 + 0.3).toFixed(2);
+
+            gameContainer.appendChild(cloud);
+            clouds.push(cloud);
+        }
+
+        setTimeout(createCloud, timeout);
+    }
+
+    function createTree() {
+        if(gameOver) return;
+
+        const timeout = 4000 + Math.random() * 4000;
+        if (!isPaused) {
+            const tree = document.createElement('div');
+            tree.classList.add('tree');
+
+            const height = 60 + Math.random() * 40;
+            const baseWidth = 30 + Math.random() * 20;
+            const greenShades = ['#228B22', '#006400', '#556B2F'];
+            const color = greenShades[Math.floor(Math.random() * greenShades.length)];
+
+            tree.style.setProperty('--tree-height', `${height}px`);
+            tree.style.setProperty('--tree-width', `${baseWidth}px`);
+            tree.style.setProperty('--tree-color', color);
+            tree.style.left = '800px';
+
+            tree.dataset.speedModifier = (Math.random() * 0.2 + 0.3).toFixed(2);
+
+            gameContainer.appendChild(tree);
+            trees.push(tree);
+        }
+
+        setTimeout(createTree, timeout);
+    }
+
+    function gameLoop() {
+        if (isPaused) {
+            return;
+        }
+        if (gameOver) {
+            gameOverDisplay.style.display = 'block';
+            return;
+        }
+
+        // Move Mountains
+        let mountainsLeft = parseInt(window.getComputedStyle(mountains).left);
+        mountainsLeft -= gameSpeed * 0.2; // Move at 20% of game speed
+        if (mountainsLeft < -800) { // When it's off screen
+            mountainsLeft = 800; // Reset to the right
+        }
+        mountains.style.left = mountainsLeft + 'px';
+
+        // Move Trees
+        for (let i = trees.length - 1; i >= 0; i--) {
+            const tree = trees[i];
+            let currentLeft = parseInt(tree.style.left);
+            currentLeft -= gameSpeed * tree.dataset.speedModifier;
+            tree.style.left = currentLeft + 'px';
+
+            if (currentLeft < -60) {
+                tree.remove();
+                trees.splice(i, 1);
+            }
+        }
+
+        // Move Clouds
+        for (let i = clouds.length - 1; i >= 0; i--) {
+            const cloud = clouds[i];
+            let currentLeft = parseInt(cloud.style.left);
+            currentLeft -= gameSpeed * cloud.dataset.speedModifier;
+            cloud.style.left = currentLeft + 'px';
+
+            if (currentLeft < -100) {
+                cloud.remove();
+                clouds.splice(i, 1);
+            }
+        }
+
+        // Move Obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            const obstacle = obstacles[i];
+            let currentLeft = parseInt(obstacle.style.left);
+            currentLeft -= gameSpeed;
+            obstacle.style.left = currentLeft + 'px';
+
+            if (currentLeft < -30) {
+                obstacle.remove();
+                obstacles.splice(i, 1);
+                passedRocksCount++;
+                if (passedRocksCount > 0 && passedRocksCount % 20 === 0) {
+                    gameSpeed += 0.5;
+
+                    skyLightness += lightnessStep * lightnessDirection;
+                    if (skyLightness <= minLightness) {
+                        skyLightness = minLightness;
+                        lightnessDirection = 1;
+                    } else if (skyLightness >= maxLightness) {
+                        skyLightness = maxLightness;
+                        lightnessDirection = -1;
+                    }
+                    gameContainer.style.backgroundColor = `hsl(197, 71%, ${skyLightness}%)`;
+                }
+            }
+        }
+
+        // Move Gems
+        for (let i = gems.length - 1; i >= 0; i--) {
+            const gem = gems[i];
+            let currentLeft = parseInt(gem.style.left);
+            currentLeft -= gameSpeed;
+            gem.style.left = currentLeft + 'px';
+
+            if (currentLeft < -25) {
+                gem.remove();
+                gems.splice(i, 1);
+            }
+        }
+
+        // Move Bullets
+        for (let i = activeBullets.length - 1; i >= 0; i--) {
+            const bullet = activeBullets[i];
+            let currentLeft = parseInt(bullet.style.left);
+            currentLeft += 10; // Bullet speed
+            bullet.style.left = currentLeft + 'px';
+
+            if (currentLeft > 800) {
+                bullet.remove();
+                activeBullets.splice(i, 1);
+            }
+        }
+
+        checkCollisions();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function checkCollisions() {
+        const guyRect = guy.getBoundingClientRect();
+
+        // Player vs Obstacle
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            const obstacle = obstacles[i];
+            const obstacleRect = obstacle.getBoundingClientRect();
+            if (isColliding(guyRect, obstacleRect)) {
+                obstacle.remove();
+                obstacles.splice(i, 1);
+                loseLife();
+            }
+        }
+
+        // Player vs Gem
+        for (let i = gems.length - 1; i >= 0; i--) {
+            const gem = gems[i];
+            const gemRect = gem.getBoundingClientRect();
+            if (isColliding(guyRect, gemRect)) {
+                gem.remove();
+                gems.splice(i, 1);
+                collectGem();
+            }
+        }
+
+        // Bullet vs Obstacle
+        for (let i = activeBullets.length - 1; i >= 0; i--) {
+            const bullet = activeBullets[i];
+            const bulletRect = bullet.getBoundingClientRect();
+
+            for (let j = obstacles.length - 1; j >= 0; j--) {
+                const obstacle = obstacles[j];
+                const obstacleRect = obstacle.getBoundingClientRect();
+
+                if(isColliding(bulletRect, obstacleRect)) {
+                    bullet.remove();
+                    activeBullets.splice(i, 1);
+                    obstacle.remove();
+                    obstacles.splice(j, 1);
+                    break; // a bullet can only hit one obstacle
+                }
+            }
+        }
+    }
+
+    function isColliding(rect1, rect2) {
+        return !(
+            rect1.right < rect2.left ||
+            rect1.left > rect2.right ||
+            rect1.bottom < rect2.top ||
+            rect1.top > rect2.bottom
+        );
+    }
+
+    function loseLife() {
+        lives--;
+        livesDisplay.textContent = lives;
+        if (lives <= 0) {
+            gameOver = true;
+        }
+    }
+
+    function collectGem() {
+        score++;
+        gemCounterForBullets++;
+        scoreDisplay.textContent = score;
+
+        if (gemCounterForBullets >= 10) {
+            bullets += 5;
+            bulletsDisplay.textContent = bullets;
+            gemCounterForBullets = 0;
+        }
+    }
+
+    // Start game
+    setTimeout(createObstacle, obstacleInterval);
+    setTimeout(createGem, 1500);
+    createCloud();
+    createTree();
+    gameLoop();
+
+</script>
+</body>
+</html>
