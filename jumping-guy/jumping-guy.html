@@ -7,13 +7,15 @@
     <style>
         body {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background-color: #f0f0f0;
             font-family: Arial, sans-serif;
-            overflow: hidden;
+            padding: 20px 0;
+            box-sizing: border-box;
         }
         #game-container {
             position: relative;
@@ -254,6 +256,29 @@
             display: none;
             z-index: 20;
         }
+        #instructions {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 800px;
+            box-sizing: border-box;
+        }
+        #instructions h3 {
+            margin-top: 0;
+            text-align: center;
+            color: #333;
+        }
+        #instructions ul {
+            list-style-type: '👉';
+            padding-left: 20px;
+        }
+        #instructions li {
+            padding-left: 10px;
+            margin-bottom: 5px;
+            color: #555;
+        }
     </style>
 </head>
 <body>
@@ -285,6 +310,17 @@
     <div id="pause-screen">PAUSED</div>
 </div>
 
+<div id="instructions">
+    <h3>How to Play</h3>
+    <ul>
+        <li>Jump with <b>Space</b>, shoot with <b>X</b>, pause/resume with <b>P</b>.</li>
+        <li>Jump over the brown rocks. Hitting them costs a life.</li>
+        <li>Collect yellow gems. 10 gems give you 5 bullets.</li>
+        <li>Bullets destroy rocks.</li>
+        <li>As you progress the game gets faster.</li>
+    </ul>
+</div>
+
 <script>
     const guy = document.getElementById('guy');
     const gameContainer = document.getElementById('game-container');
@@ -300,6 +336,8 @@
     let bullets = 0;
     let gameSpeed = 5;
     let isJumping = false;
+    let jumpQueued = false;
+    let jumpStartTime = 0;
     let gemCounterForBullets = 0;
     let gameOver = false;
     let isPaused = false;
@@ -321,8 +359,15 @@
     let obstacleInterval = 2000; // ms
 
     document.addEventListener('keydown', (e) => {
-        if (e.code === 'Space' && !isJumping && !gameOver && !isPaused) {
-            jump();
+        if (e.code === 'Space' && !gameOver && !isPaused) {
+            if (isJumping) {
+                // Allow queuing a jump in the last 300ms of the current jump animation (800ms total).
+                if (Date.now() - jumpStartTime > 500) {
+                    jumpQueued = true;
+                }
+            } else {
+                jump();
+            }
         }
         if (e.code === 'KeyX' && bullets > 0 && !gameOver && !isPaused) {
             shoot();
@@ -342,10 +387,18 @@
 
     function jump() {
         isJumping = true;
+        jumpQueued = false;
+        jumpStartTime = Date.now();
         guy.classList.add('jump');
         setTimeout(() => {
             guy.classList.remove('jump');
-            isJumping = false;
+            if (jumpQueued) {
+                // A jump was queued. Start it after a tiny delay to allow the browser
+                // to repaint and restart the animation correctly.
+                setTimeout(jump, 10);
+            } else {
+                isJumping = false;
+            }
         }, 800);
     }
 
