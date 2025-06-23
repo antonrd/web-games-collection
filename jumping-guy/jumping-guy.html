@@ -279,6 +279,9 @@
             margin-bottom: 5px;
             color: #555;
         }
+        #game-container.paused #guy {
+            animation-play-state: paused;
+        }
     </style>
 </head>
 <body>
@@ -343,6 +346,8 @@
     let isPaused = false;
     let passedRocksCount = 0;
 
+    let obstacleTimerId, gemTimerId, cloudTimerId, treeTimerId;
+
     // Sky color variables
     let skyLightness = 73; // Corresponds to HSL lightness for #87CEEB
     let lightnessDirection = -1; // -1 for getting darker, 1 for lighter
@@ -357,6 +362,17 @@
     let trees = [];
 
     let obstacleInterval = 2000; // ms
+
+    guy.addEventListener('animationend', e => {
+        if (e.animationName === 'jump') {
+            isJumping = false;
+            guy.classList.remove('jump');
+            if (jumpQueued) {
+                jumpQueued = false;
+                setTimeout(jump, 0);
+            }
+        }
+    });
 
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && !gameOver && !isPaused) {
@@ -379,27 +395,28 @@
 
     function togglePause() {
         isPaused = !isPaused;
+        gameContainer.classList.toggle('paused', isPaused);
         pauseScreen.style.display = isPaused ? 'block' : 'none';
-        if (!isPaused) {
+
+        if (isPaused) {
+            clearTimeout(obstacleTimerId);
+            clearTimeout(gemTimerId);
+            clearTimeout(cloudTimerId);
+            clearTimeout(treeTimerId);
+        } else {
             requestAnimationFrame(gameLoop);
+            scheduleNextObstacle();
+            scheduleNextGem();
+            scheduleNextCloud();
+            scheduleNextTree();
         }
     }
 
     function jump() {
+        if (isJumping) return;
         isJumping = true;
-        jumpQueued = false;
         jumpStartTime = Date.now();
         guy.classList.add('jump');
-        setTimeout(() => {
-            guy.classList.remove('jump');
-            if (jumpQueued) {
-                // A jump was queued. Start it after a tiny delay to allow the browser
-                // to repaint and restart the animation correctly.
-                setTimeout(jump, 10);
-            } else {
-                isJumping = false;
-            }
-        }, 800);
     }
 
     function shoot() {
@@ -419,83 +436,84 @@
     }
 
     function createObstacle() {
-        if(gameOver) return;
+        if (gameOver || isPaused) return;
+        const obstacle = document.createElement('div');
+        obstacle.classList.add('obstacle');
+        obstacle.style.left = '800px';
+        gameContainer.appendChild(obstacle);
+        obstacles.push(obstacle);
+        scheduleNextObstacle();
+    }
 
-        // Adjust interval for next obstacle
+    function scheduleNextObstacle() {
+        if (gameOver) return;
         const nextInterval = obstacleInterval - (score * 2);
         const minInterval = 800 / (gameSpeed / 5);
         const timeout = Math.max(minInterval, nextInterval);
-
-        if (!isPaused) {
-            const obstacle = document.createElement('div');
-            obstacle.classList.add('obstacle');
-            obstacle.style.left = '800px';
-            gameContainer.appendChild(obstacle);
-            obstacles.push(obstacle);
-        }
-
-        setTimeout(createObstacle, timeout);
+        obstacleTimerId = setTimeout(createObstacle, timeout);
     }
 
     function createGem() {
-        if(gameOver) return;
+        if (gameOver || isPaused) return;
+        const gem = document.createElement('div');
+        gem.classList.add('gem');
+        gem.style.left = '800px';
+        gem.style.bottom = (80 + Math.random() * 100) + 'px';
+        gameContainer.appendChild(gem);
+        gems.push(gem);
+        scheduleNextGem();
+    }
 
+    function scheduleNextGem() {
+        if (gameOver) return;
         const timeout = 2000 + Math.random() * 2000;
-        if (!isPaused) {
-            const gem = document.createElement('div');
-            gem.classList.add('gem');
-            gem.style.left = '800px';
-            gem.style.bottom = (80 + Math.random() * 100) + 'px';
-            gameContainer.appendChild(gem);
-            gems.push(gem);
-        }
-
-        setTimeout(createGem, timeout);
+        gemTimerId = setTimeout(createGem, timeout);
     }
 
     function createCloud() {
-        if(gameOver) return;
+        if (gameOver || isPaused) return;
+        const cloud = document.createElement('div');
+        cloud.classList.add('cloud');
+        cloud.style.left = '800px';
+        cloud.style.top = (20 + Math.random() * 80) + 'px';
+        cloud.dataset.speedModifier = (Math.random() * 0.5 + 0.3).toFixed(2);
+        gameContainer.appendChild(cloud);
+        clouds.push(cloud);
+        scheduleNextCloud();
+    }
 
+    function scheduleNextCloud() {
+        if (gameOver) return;
         const timeout = 7000 + Math.random() * 7000;
-        if (!isPaused) {
-            const cloud = document.createElement('div');
-            cloud.classList.add('cloud');
-            cloud.style.left = '800px';
-            cloud.style.top = (20 + Math.random() * 80) + 'px';
-            cloud.dataset.speedModifier = (Math.random() * 0.5 + 0.3).toFixed(2);
-
-            gameContainer.appendChild(cloud);
-            clouds.push(cloud);
-        }
-
-        setTimeout(createCloud, timeout);
+        cloudTimerId = setTimeout(createCloud, timeout);
     }
 
     function createTree() {
-        if(gameOver) return;
+        if (gameOver || isPaused) return;
+        const tree = document.createElement('div');
+        tree.classList.add('tree');
 
+        const height = 60 + Math.random() * 40;
+        const baseWidth = 30 + Math.random() * 20;
+        const greenShades = ['#228B22', '#006400', '#556B2F'];
+        const color = greenShades[Math.floor(Math.random() * greenShades.length)];
+
+        tree.style.setProperty('--tree-height', `${height}px`);
+        tree.style.setProperty('--tree-width', `${baseWidth}px`);
+        tree.style.setProperty('--tree-color', color);
+        tree.style.left = '800px';
+
+        tree.dataset.speedModifier = (Math.random() * 0.2 + 0.3).toFixed(2);
+
+        gameContainer.appendChild(tree);
+        trees.push(tree);
+        scheduleNextTree();
+    }
+
+    function scheduleNextTree() {
+        if (gameOver) return;
         const timeout = 4000 + Math.random() * 4000;
-        if (!isPaused) {
-            const tree = document.createElement('div');
-            tree.classList.add('tree');
-
-            const height = 60 + Math.random() * 40;
-            const baseWidth = 30 + Math.random() * 20;
-            const greenShades = ['#228B22', '#006400', '#556B2F'];
-            const color = greenShades[Math.floor(Math.random() * greenShades.length)];
-
-            tree.style.setProperty('--tree-height', `${height}px`);
-            tree.style.setProperty('--tree-width', `${baseWidth}px`);
-            tree.style.setProperty('--tree-color', color);
-            tree.style.left = '800px';
-
-            tree.dataset.speedModifier = (Math.random() * 0.2 + 0.3).toFixed(2);
-
-            gameContainer.appendChild(tree);
-            trees.push(tree);
-        }
-
-        setTimeout(createTree, timeout);
+        treeTimerId = setTimeout(createTree, timeout);
     }
 
     function gameLoop() {
@@ -552,7 +570,7 @@
                 obstacle.remove();
                 obstacles.splice(i, 1);
                 passedRocksCount++;
-                if (passedRocksCount > 0 && passedRocksCount % 20 === 0) {
+                if (passedRocksCount > 0 && passedRocksCount % 10 === 0) {
                     gameSpeed += 0.5;
 
                     skyLightness += lightnessStep * lightnessDirection;
@@ -674,10 +692,10 @@
     }
 
     // Start game
-    setTimeout(createObstacle, obstacleInterval);
-    setTimeout(createGem, 1500);
-    createCloud();
-    createTree();
+    scheduleNextObstacle();
+    scheduleNextGem();
+    scheduleNextCloud();
+    scheduleNextTree();
     gameLoop();
 
 </script>
