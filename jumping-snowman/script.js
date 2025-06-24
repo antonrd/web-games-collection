@@ -381,7 +381,7 @@ function loseLife() {
         if (score > highScore) {
             highScore = score;
             highScoreDisplay.textContent = highScore;
-            localStorage.setItem('jumpingGuyHighScore', highScore);
+            localStorage.setItem('jumpingSnowmanHighScore', highScore);
         }
 
         clearTimeout(obstacleTimerId);
@@ -449,7 +449,7 @@ function showMenu(state) {
 
     switch(state) {
         case 'initial':
-            title = 'Jumping Guy';
+            title = 'Jumping Snowman';
             break;
         case 'pause':
             title = 'Paused';
@@ -515,7 +515,7 @@ function startGame() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    highScore = localStorage.getItem('jumpingGuyHighScore') || 0;
+    highScore = localStorage.getItem('jumpingSnowmanHighScore') || 0;
     highScoreDisplay.textContent = highScore;
     showMenu('initial');
     startBtn.addEventListener('click', startGame);
