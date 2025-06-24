@@ -1,0 +1,47 @@
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 3em;
+  background-color: #f0f0f0;
+  box-sizing: border-box;
+}
+.back-link {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  text-decoration: none;
+  color: #333;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-family: sans-serif;
+  font-size: 14px;
+  z-index: 1000;
+}
+
+.back-link:hover {
+    background-color: white;
+}
+.game-wrapper {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 4em);
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+#blocklyArea { flex: 1; height: 100%; display: flex; flex-direction: column; }
+#blocklyDiv { height: 100%; width: 100%; }
+#simulationArea {
+  flex: 0 0 420px; /* Fixed width for simulation panel */
+  height: 100%;
+  padding: 10px;
+  border-left: 1px solid #ccc;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+#gridCanvas { border: 1px solid black; margin-bottom: 10px; }
+#controls button { margin-right: 5px; padding: 8px 12px; }
+#messageArea { margin-top: 10px; padding: 10px; border: 1px solid #eee; background-color: #f9f9f9; min-height: 40px; }
