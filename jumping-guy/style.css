@@ -240,14 +240,19 @@ body {
     background-color: #333;
     z-index: 10;
 }
-#score-board {
+.score-board {
     position: absolute;
     top: 10px;
-    left: 10px;
     font-size: 24px;
     color: white;
 }
-#score-board > div {
+#score-board-left {
+    left: 10px;
+}
+#score-board-right {
+    right: 10px;
+}
+.score-board > div {
     padding: 5px 10px;
     border-radius: 5px;
     margin-bottom: 5px;
