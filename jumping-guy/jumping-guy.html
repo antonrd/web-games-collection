@@ -234,28 +234,6 @@
             font-size: 24px;
             color: white;
         }
-        #game-over {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px;
-            color: red;
-            display: none;
-            background-color: rgba(255, 255, 255, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-        }
-        #pause-screen {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px;
-            color: rgba(255, 255, 255, 0.7);
-            display: none;
-            z-index: 20;
-        }
         #instructions {
             margin-top: 20px;
             padding: 10px 20px;
@@ -282,6 +260,38 @@
         #game-container.paused #guy {
             animation-play-state: paused;
         }
+        #menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 30;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            display: none;
+        }
+        #menu h2 {
+            margin: 0 0 20px;
+            font-size: 48px;
+        }
+        #menu button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        #menu button:hover {
+            background-color: #ddd;
+        }
     </style>
 </head>
 <body>
@@ -306,11 +316,11 @@
         <div>Lives: <span id="lives">3</span></div>
         <div>Bullets: <span id="bullets">0</span></div>
     </div>
-    <div id="game-over">
-        GAME OVER
-        <button onclick="location.reload()">Restart</button>
+    <div id="menu">
+        <h2 id="menu-title">Jumping Guy</h2>
+        <button id="start-btn">Start New Game</button>
+        <button id="resume-btn" style="display: none;">Resume</button>
     </div>
-    <div id="pause-screen">PAUSED</div>
 </div>
 
 <div id="instructions">
@@ -330,9 +340,11 @@
     const scoreDisplay = document.getElementById('score');
     const livesDisplay = document.getElementById('lives');
     const bulletsDisplay = document.getElementById('bullets');
-    const gameOverDisplay = document.getElementById('game-over');
+    const menu = document.getElementById('menu');
+    const menuTitle = document.getElementById('menu-title');
+    const startBtn = document.getElementById('start-btn');
+    const resumeBtn = document.getElementById('resume-btn');
     const mountains = document.getElementById('mountains');
-    const pauseScreen = document.getElementById('pause-screen');
 
     let score = 0;
     let lives = 3;
@@ -412,16 +424,18 @@
     });
 
     function togglePause() {
+        if (gameOver) return;
         isPaused = !isPaused;
         gameContainer.classList.toggle('paused', isPaused);
-        pauseScreen.style.display = isPaused ? 'block' : 'none';
 
         if (isPaused) {
             clearTimeout(obstacleTimerId);
             clearTimeout(gemTimerId);
             clearTimeout(cloudTimerId);
             clearTimeout(treeTimerId);
+            showMenu('pause');
         } else {
+            menu.style.display = 'none';
             requestAnimationFrame(gameLoop);
             scheduleNextObstacle();
             scheduleNextGem();
@@ -539,7 +553,13 @@
             return;
         }
         if (gameOver) {
-            gameOverDisplay.style.display = 'block';
+            gameOver = true;
+            clearTimeout(obstacleTimerId);
+            clearTimeout(gemTimerId);
+            clearTimeout(cloudTimerId);
+            clearTimeout(treeTimerId);
+            gameContainer.classList.add('paused');
+            showMenu('gameover');
             return;
         }
 
@@ -694,6 +714,12 @@
         livesDisplay.textContent = lives;
         if (lives <= 0) {
             gameOver = true;
+            clearTimeout(obstacleTimerId);
+            clearTimeout(gemTimerId);
+            clearTimeout(cloudTimerId);
+            clearTimeout(treeTimerId);
+            gameContainer.classList.add('paused');
+            showMenu('gameover');
         }
     }
 
@@ -709,12 +735,79 @@
         }
     }
 
+    function showMenu(state) {
+        let title = '';
+        let showResume = false;
+
+        switch(state) {
+            case 'initial':
+                title = 'Jumping Guy';
+                break;
+            case 'pause':
+                title = 'Paused';
+                showResume = true;
+                break;
+            case 'gameover':
+                title = 'Game Over';
+                break;
+        }
+
+        menuTitle.textContent = title;
+        resumeBtn.style.display = showResume ? 'block' : 'none';
+        menu.style.display = 'block';
+    }
+
+    function resetGame() {
+        [...obstacles, ...gems, ...activeBullets, ...clouds, ...trees].forEach(el => el.remove());
+
+        obstacles = [];
+        gems = [];
+        activeBullets = [];
+        clouds = [];
+        trees = [];
+
+        score = 0;
+        lives = 3;
+        bullets = 0;
+        gameSpeed = 5;
+        isJumping = false;
+        jumpQueued = false;
+        jumpStartTime = 0;
+        gemCounterForBullets = 0;
+        passedRocksCount = 0;
+        isSpacebarDown = false;
+        isXDown = false;
+        isPDown = false;
+
+        scoreDisplay.textContent = score;
+        livesDisplay.textContent = lives;
+        bulletsDisplay.textContent = bullets;
+
+        skyLightness = 73;
+        lightnessDirection = -1;
+        gameContainer.style.backgroundColor = `hsl(197, 71%, ${skyLightness}%)`;
+
+        gameContainer.classList.remove('paused');
+    }
+
+    function startGame() {
+        resetGame();
+        gameOver = false;
+        isPaused = false;
+        menu.style.display = 'none';
+        requestAnimationFrame(gameLoop);
+        scheduleNextObstacle();
+        scheduleNextGem();
+        scheduleNextCloud();
+        scheduleNextTree();
+    }
+
     // Start game
-    scheduleNextObstacle();
-    scheduleNextGem();
-    scheduleNextCloud();
-    scheduleNextTree();
-    gameLoop();
+    document.addEventListener('DOMContentLoaded', () => {
+        showMenu('initial');
+        startBtn.addEventListener('click', startGame);
+        resumeBtn.addEventListener('click', togglePause);
+    });
 
 </script>
 </body>
