@@ -324,7 +324,7 @@ function checkCollisions() {
     for (let i = obstacles.length - 1; i >= 0; i--) {
         const obstacle = obstacles[i];
         const obstacleRect = obstacle.getBoundingClientRect();
-        if (isColliding(guyRect, obstacleRect)) {
+        if (isColliding(guyRect, obstacleRect, 10)) {
             obstacle.remove();
             obstacles.splice(i, 1);
             loseLife();
@@ -335,7 +335,7 @@ function checkCollisions() {
     for (let i = gems.length - 1; i >= 0; i--) {
         const gem = gems[i];
         const gemRect = gem.getBoundingClientRect();
-        if (isColliding(guyRect, gemRect)) {
+        if (isColliding(guyRect, gemRect, 5)) {
             gem.remove();
             gems.splice(i, 1);
             collectGem();
@@ -362,12 +362,13 @@ function checkCollisions() {
     }
 }
 
-function isColliding(rect1, rect2) {
+function isColliding(rect1, rect2, padding = 0) {
+    // Add a padding to shrink the hitboxes, making collisions less strict.
     return !(
-        rect1.right < rect2.left ||
-        rect1.left > rect2.right ||
-        rect1.bottom < rect2.top ||
-        rect1.top > rect2.bottom
+        rect1.right - padding < rect2.left + padding ||
+        rect1.left + padding > rect2.right - padding ||
+        rect1.bottom - padding < rect2.top + padding ||
+        rect1.top + padding > rect2.bottom - padding
     );
 }
 
