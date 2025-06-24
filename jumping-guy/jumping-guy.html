@@ -321,6 +321,7 @@
     </div>
     <div id="score-board">
         <div>Score: <span id="score">0</span></div>
+        <div>High Score: <span id="high-score">0</span></div>
         <div>Lives: <span id="lives">3</span></div>
         <div>Bullets: <span id="bullets">0</span></div>
     </div>
@@ -346,6 +347,7 @@
     const guy = document.getElementById('guy');
     const gameContainer = document.getElementById('game-container');
     const scoreDisplay = document.getElementById('score');
+    const highScoreDisplay = document.getElementById('high-score');
     const livesDisplay = document.getElementById('lives');
     const bulletsDisplay = document.getElementById('bullets');
     const menu = document.getElementById('menu');
@@ -357,6 +359,7 @@
     let score = 0;
     let lives = 3;
     let bullets = 0;
+    let highScore = 0;
     let gameSpeed = 5;
     let isJumping = false;
     let jumpQueued = false;
@@ -722,6 +725,13 @@
         updateLivesDisplay();
         if (lives <= 0) {
             gameOver = true;
+
+            if (score > highScore) {
+                highScore = score;
+                highScoreDisplay.textContent = highScore;
+                localStorage.setItem('jumpingGuyHighScore', highScore);
+            }
+
             clearTimeout(obstacleTimerId);
             clearTimeout(gemTimerId);
             clearTimeout(cloudTimerId);
@@ -735,6 +745,10 @@
         score++;
         gemCounterForBullets++;
         scoreDisplay.textContent = score;
+
+        if (highScore > 0 && score > highScore) {
+            scoreDisplay.parentElement.style.backgroundColor = 'mediumpurple';
+        }
 
         if (gemCounterForBullets >= 10) {
             bullets += 5;
@@ -852,6 +866,8 @@
 
     // Start game
     document.addEventListener('DOMContentLoaded', () => {
+        highScore = localStorage.getItem('jumpingGuyHighScore') || 0;
+        highScoreDisplay.textContent = highScore;
         showMenu('initial');
         startBtn.addEventListener('click', startGame);
         resumeBtn.addEventListener('click', togglePause);
