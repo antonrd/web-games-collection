@@ -345,6 +345,9 @@
     let gameOver = false;
     let isPaused = false;
     let passedRocksCount = 0;
+    let isSpacebarDown = false;
+    let isXDown = false;
+    let isPDown = false;
 
     let obstacleTimerId, gemTimerId, cloudTimerId, treeTimerId;
 
@@ -375,7 +378,8 @@
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.code === 'Space' && !gameOver && !isPaused) {
+        if (e.code === 'Space' && !gameOver && !isPaused && !isSpacebarDown) {
+            isSpacebarDown = true;
             if (isJumping) {
                 // Allow queuing a jump in the last 300ms of the current jump animation (800ms total).
                 if (Date.now() - jumpStartTime > 500) {
@@ -385,11 +389,25 @@
                 jump();
             }
         }
-        if (e.code === 'KeyX' && bullets > 0 && !gameOver && !isPaused) {
+        if (e.code === 'KeyX' && bullets > 0 && !gameOver && !isPaused && !isXDown) {
+            isXDown = true;
             shoot();
         }
-        if (e.code === 'KeyP' && !gameOver) {
+        if (e.code === 'KeyP' && !gameOver && !isPDown) {
+            isPDown = true;
             togglePause();
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+            isSpacebarDown = false;
+        }
+        if (e.code === 'KeyX') {
+            isXDown = false;
+        }
+        if (e.code === 'KeyP') {
+            isPDown = false;
         }
     });
 
