@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Musical hearing trainer</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Info Icon -->
+    <div id="info-icon" class="info-icon">&#9432;</div>
+
+    <!-- Info Pop-up -->
+    <div id="info-popup" class="info-popup">
+      <div class="info-content">
+        <h3>Musical hearing trainer</h3>
+        <p>Use this tool to generate short melodies.
+          Listen to the melodies and try to reproduce
+          them on a music instrument, like a piano,
+          to train your musical hearing ability.
+          When done, reveal the melody notes to check
+          if you've guessed it right.
+        </p>
+        <p>The page opens with a default generated melody.
+          You can select to generate a new random melody or
+          select one from a pre-defined set. If a random
+          melody is generated, you can select the number
+          of notes and the scale to use. You can also leave
+          the scale to be randomly selected. The notes can
+          played using sampled notes or ones generated on
+          the fly.
+        </p>
+        <p><b>Once ready with the melody settings:</b>
+          <ul>
+            <li>Click the "Generate Melody" button,
+              which will show the notes of the melody
+              without revealing them. </li>
+            <li>You can then click the "Play Melody"
+              button to listen to the melody. </li>
+            <li>You can stop the playing with the button "Stop Melody".</li>
+            <li>When you want to see the notes, click the "Reveal Melody"
+              button to have them appear in the notes boxes.</li>
+          </ul>
+        </p>
+      </div>
+    </div>
+    <div class="notes-container">
+      <!-- The notes will be dynamically added here -->
+    </div>
+    <div class="toggle-container">
+      <input type="radio" id="randomToggle" name="melodyToggle" value="random" checked>
+      <label for="randomToggle">Random</label>
+      <input type="radio" id="predefinedToggle" name="melodyToggle" value="predefined">
+      <label for="predefinedToggle">Pre-defined</label>
+    </div>
+    <div class="toggle-container">
+      <input type="radio" id="sampledNotesToggle" name="noteTypeToggle" value="sampled" checked>
+      <label for="sampledNotesToggle">Sampled Piano</label>
+      <input type="radio" id="generatedNotesToggle" name="noteTypeToggle" value="generated">
+      <label for="generatedNotesToggle">Generated Sound</label>
+    </div>
+    <div class="random-notes-container">
+      <label for="randomNotes">Number of notes:</label>
+      <input type="number" id="randomNotes" min="1" value="10">
+    </div>
+    <div class="scale-select-container">
+      <label for="scale-select">Scale:</label>
+      <select id="scale-select">
+        <!-- The scale options will be dynamically added here -->
+      </select>
+    </div>
+    <div class="buttons-container">
+      <button id="generateBtn" onclick="generateMelody()">Generate Melody</button>
+      <button id="playBtn" onclick="playMelody()">Play Melody</button>
+      <button id="stopBtn" onclick="stopMelody()">Stop Melody</button>
+      <button id="revealBtn" onclick="revealMelody()">Reveal Melody</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

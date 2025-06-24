@@ -1,0 +1,154 @@
+body {
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+}
+
+.notes-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #92d1aa;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.note.highlight {
+  background-color: #498f63;
+  color: white;
+}
+
+.toggle-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.toggle-container input[type="radio"] {
+  display: none;
+}
+
+.toggle-container label {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #92d1aa;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-container input[type="radio"]:checked + label {
+  background-color: #498f63;
+  color: white;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.scale-select-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.scale-select-container label {
+  margin-right: 10px;
+  margin-top: 10px;
+}
+
+#scale-select {
+  font-family: 'Arial', sans-serif;
+  font-size: 20px;
+  padding: 8px;
+  margin-top: 10px;
+  border: none;
+  /* border-radius: 4px; */
+  background-color: #92d1aa;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.3s ease;
+}
+
+.buttons-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.buttons-container button {
+  margin: 0 5px;
+}
+
+button {
+  display: block;
+  margin: 0 auto;
+  padding: 10px 20px;
+  background-color: #92d1aa;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.random-notes-container input[type="number"] {
+  width: 40px;
+}
+
+input[type="number"] {
+  margin: 20px auto;
+  padding: 5px;
+  font-size: 20px;
+  border: 0px;
+  background-color: #92d1aa;
+}
+
+/* Info Icon Styles */
+.info-icon {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  line-height: 40px;
+  text-align: center;
+  background-color: #007bff; /* Blue color */
+  color: #ffffff; /* White color */
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 9999;
+}
+
+/* Info Pop-up Styles */
+.info-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px;
+  background-color: #ffffff; /* White color */
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.3);
+  display: none;
+  z-index: 9999;
+  cursor: pointer;
+}
+
+.info-content {
+  text-align: center;
+}
+
+ul {
+  text-align: left;
+}
