@@ -234,6 +234,14 @@
             font-size: 24px;
             color: white;
         }
+        #score-board > div {
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            background-color: rgba(0, 0, 0, 0.2);
+            color: #f0f0f0;
+            transition: background-color 0.3s ease;
+        }
         #instructions {
             margin-top: 20px;
             padding: 10px 20px;
@@ -453,7 +461,7 @@
 
     function shoot() {
         bullets--;
-        bulletsDisplay.textContent = bullets;
+        updateBulletsDisplay();
 
         const bullet = document.createElement('div');
         bullet.classList.add('bullet');
@@ -711,7 +719,7 @@
 
     function loseLife() {
         lives--;
-        livesDisplay.textContent = lives;
+        updateLivesDisplay();
         if (lives <= 0) {
             gameOver = true;
             clearTimeout(obstacleTimerId);
@@ -730,8 +738,32 @@
 
         if (gemCounterForBullets >= 10) {
             bullets += 5;
-            bulletsDisplay.textContent = bullets;
+            updateBulletsDisplay();
             gemCounterForBullets = 0;
+        }
+    }
+
+    function updateBulletsDisplay() {
+        bulletsDisplay.textContent = bullets;
+        bulletsDisplay.parentElement.style.backgroundColor = bullets > 0 ? 'lightcoral' : 'rgba(0, 0, 0, 0.2)';
+    }
+
+    function updateLivesDisplay() {
+        livesDisplay.textContent = lives;
+        const livesContainer = livesDisplay.parentElement;
+        switch(lives) {
+            case 3:
+                livesContainer.style.backgroundColor = 'green';
+                break;
+            case 2:
+                livesContainer.style.backgroundColor = 'orange';
+                break;
+            case 1:
+                livesContainer.style.backgroundColor = 'lightcoral';
+                break;
+            default:
+                livesContainer.style.backgroundColor = 'darkred';
+                break;
         }
     }
 
@@ -755,6 +787,19 @@
         menuTitle.textContent = title;
         resumeBtn.style.display = showResume ? 'block' : 'none';
         menu.style.display = 'block';
+
+        scoreDisplay.textContent = score;
+        updateLivesDisplay();
+        updateBulletsDisplay();
+
+        // Reset score background, as it doesn't have its own update function
+        scoreDisplay.parentElement.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+
+        skyLightness = 73;
+        lightnessDirection = -1;
+        gameContainer.style.backgroundColor = `hsl(197, 71%, ${skyLightness}%)`;
+
+        gameContainer.classList.remove('paused');
     }
 
     function resetGame() {
@@ -780,8 +825,11 @@
         isPDown = false;
 
         scoreDisplay.textContent = score;
-        livesDisplay.textContent = lives;
-        bulletsDisplay.textContent = bullets;
+        updateLivesDisplay();
+        updateBulletsDisplay();
+
+        // Reset score background, as it doesn't have its own update function
+        scoreDisplay.parentElement.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
 
         skyLightness = 73;
         lightnessDirection = -1;
