@@ -1,0 +1,295 @@
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+    font-family: Arial, sans-serif;
+    padding: 20px 0;
+    box-sizing: border-box;
+}
+#game-container {
+    position: relative;
+    width: 800px;
+    height: 400px;
+    border: 2px solid black;
+    background-color: #87CEEB;
+    overflow: hidden;
+}
+#mountains {
+    position: absolute;
+    bottom: 0;
+    left: 800px; /* Start off-screen */
+    width: 100%;
+    height: 100px; /* Made smaller */
+    z-index: 1;
+}
+#mountains::before, #mountains::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+#mountains::before {
+    border-width: 0 260px 100px 260px; /* Made smaller */
+    border-color: transparent transparent #4D5656 transparent;
+    left: 50%;
+    transform: translateX(-60%);
+}
+#mountains::after {
+    border-width: 0 170px 70px 170px; /* Made smaller */
+    border-color: transparent transparent #6E7B7B transparent;
+    left: 10%;
+    transform: translateX(10%);
+}
+.cloud {
+    position: absolute;
+    width: 100px;
+    height: 30px;
+    background: #fff;
+    border-radius: 50px;
+    opacity: 0.8;
+    z-index: 2;
+}
+.cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+}
+.cloud::before {
+    width: 50px;
+    height: 50px;
+    top: -25px;
+    left: 15px;
+}
+.cloud::after {
+    width: 70px;
+    height: 70px;
+    top: -35px;
+    right: 5px;
+}
+.tree {
+    position: absolute;
+    z-index: 2;
+    --tree-height: 70px;
+    --tree-width: 50px;
+    --trunk-height: 15px;
+    --trunk-width: 10px;
+    --tree-color: #228B22; /* ForestGreen */
+    bottom: 0;
+}
+.tree::before { /* Trunk */
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: calc(var(--tree-width) / 2 - var(--trunk-width) / 2);
+    width: var(--trunk-width);
+    height: var(--trunk-height);
+    background: #5C4033; /* DarkBrown */
+}
+.tree::after { /* Foliage */
+    content: '';
+    position: absolute;
+    bottom: var(--trunk-height);
+    left: 0;
+    width: 0;
+    height: 0;
+    border-left: calc(var(--tree-width) / 2) solid transparent;
+    border-right: calc(var(--tree-width) / 2) solid transparent;
+    border-bottom: var(--tree-height) solid var(--tree-color);
+}
+#guy {
+    position: absolute;
+    bottom: 0;
+    left: 50px;
+    width: 50px;
+    height: 65px;
+    animation: run 0.4s infinite ease-in-out;
+    z-index: 10;
+}
+.head {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 30px;
+    background: white;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+}
+.body {
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+}
+.eye {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: black;
+    border-radius: 50%;
+    top: 10px;
+}
+.eye.left {
+    left: 7px;
+}
+.eye.right {
+    right: 7px;
+}
+.nose {
+    position: absolute;
+    top: 13px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 8px solid orange;
+}
+.mouth {
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 4px;
+    border-bottom: 1px solid black;
+    border-radius: 0 0 10px 10px;
+}
+.button {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: black;
+    border-radius: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.button.b1 { top: 8px; }
+.button.b2 { top: 16px; }
+.button.b3 { top: 24px; }
+
+#guy.jump {
+    animation: jump 0.8s ease-out;
+}
+@keyframes run {
+    0% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-5px) rotate(1deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+}
+@keyframes jump {
+    0% { bottom: 0; }
+    50% { bottom: 150px; }
+    100% { bottom: 0; }
+}
+.obstacle {
+    position: absolute;
+    bottom: 0;
+    width: 45px;
+    height: 45px;
+    background-color: #8B4513; /* SaddleBrown */
+    z-index: 10;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: inset -7px -7px 0px 0px #654321;
+}
+.gem {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    background-color: gold;
+    border-radius: 50%;
+    z-index: 10;
+}
+.bullet {
+    position: absolute;
+    width: 15px;
+    height: 5px;
+    background-color: #333;
+    z-index: 10;
+}
+#score-board {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 24px;
+    color: white;
+}
+#score-board > div {
+    padding: 5px 10px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #f0f0f0;
+    transition: background-color 0.3s ease;
+}
+#game-container.paused #guy {
+    animation-play-state: paused;
+}
+#instructions {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 800px;
+    box-sizing: border-box;
+}
+#instructions h3 {
+    margin-top: 0;
+    text-align: center;
+    color: #333;
+}
+#instructions ul {
+    list-style-type: '👉';
+    padding-left: 20px;
+}
+#instructions li {
+    padding-left: 10px;
+    margin-bottom: 5px;
+    color: #555;
+}
+#menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 30;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    color: white;
+    display: none;
+}
+#menu h2 {
+    margin: 0 0 20px;
+    font-size: 48px;
+}
+#menu button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    color: #333;
+}
+#menu button:hover {
+    background-color: #ddd;
+}
