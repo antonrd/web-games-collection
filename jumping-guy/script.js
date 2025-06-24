@@ -35,6 +35,7 @@ let passedRocksCount = 0;
 let isSpacebarDown = false;
 let isXDown = false;
 let isPDown = false;
+let isNDown = false;
 
 let obstacleInterval = 2000; // ms
 
@@ -73,6 +74,10 @@ document.addEventListener('keydown', (e) => {
         isPDown = true;
         togglePause();
     }
+    if (e.code === 'KeyN' && !isNDown && menu.style.display === 'block') {
+        isNDown = true;
+        startGame();
+    }
 });
 
 document.addEventListener('keyup', (e) => {
@@ -84,6 +89,9 @@ document.addEventListener('keyup', (e) => {
     }
     if (e.code === 'KeyP') {
         isPDown = false;
+    }
+    if (e.code === 'KeyN') {
+        isNDown = false;
     }
 });
 
@@ -477,6 +485,7 @@ function resetGame() {
     isSpacebarDown = false;
     isXDown = false;
     isPDown = false;
+    isNDown = false;
 
     scoreDisplay.textContent = score;
     updateLivesDisplay();
