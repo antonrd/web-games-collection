@@ -27,24 +27,44 @@ body {
     z-index: 1;
 }
 #mountains::before, #mountains::after {
-    content: '';
+    content: none;
+}
+.mountain {
     position: absolute;
     bottom: 0;
     width: 0;
     height: 0;
     border-style: solid;
 }
-#mountains::before {
-    border-width: 0 260px 100px 260px; /* Made smaller */
+.mountain::after { /* Snow cap */
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-color: transparent transparent white transparent;
+}
+.mountain-1 {
+    border-width: 0 260px 100px 260px;
     border-color: transparent transparent #4D5656 transparent;
     left: 50%;
     transform: translateX(-60%);
 }
-#mountains::after {
-    border-width: 0 170px 70px 170px; /* Made smaller */
+.mountain-1::after {
+    top: 0;
+    left: -52px;
+    border-width: 0 52px 20px 52px;
+}
+.mountain-2 {
+    border-width: 0 170px 70px 170px;
     border-color: transparent transparent #6E7B7B transparent;
     left: 10%;
     transform: translateX(10%);
+}
+.mountain-2::after {
+    top: 0;
+    left: -36px;
+    border-width: 0 36px 15px 36px;
 }
 .cloud {
     position: absolute;
