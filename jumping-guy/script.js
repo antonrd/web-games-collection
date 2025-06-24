@@ -395,8 +395,18 @@ function collectGem() {
 
     if (gemCounterForBullets >= 10) {
         bullets += 5;
-        updateBulletsDisplay();
         gemCounterForBullets = 0;
+
+        bulletsDisplay.textContent = bullets;
+        const bulletContainer = bulletsDisplay.parentElement;
+
+        // Flash purple
+        bulletContainer.style.backgroundColor = 'mediumpurple';
+
+        // After a short delay, set it to the normal color for having bullets
+        setTimeout(() => {
+            bulletContainer.style.backgroundColor = 'lightcoral';
+        }, 300);
     }
 }
 
