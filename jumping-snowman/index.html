@@ -7,52 +7,51 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div id="game-container">
-    <div id="mountains">
-        <div class="mountain mountain-1"></div>
-        <div class="mountain mountain-2"></div>
-    </div>
-    <div id="guy">
-        <div class="head">
-            <div class="eye left"></div>
-            <div class="eye right"></div>
-            <div class="nose"></div>
-            <div class="mouth"></div>
+    <a href="../index.html" class="back-link">← Back to Home</a>
+    <div id="game-container">
+        <div id="mountains">
+            <div class="mountain mountain-1"></div>
+            <div class="mountain mountain-2"></div>
         </div>
-        <div class="body">
-            <div class="button b1"></div>
-            <div class="button b2"></div>
-            <div class="button b3"></div>
+        <div id="guy">
+            <div class="head">
+                <div class="eye left"></div>
+                <div class="eye right"></div>
+                <div class="nose"></div>
+                <div class="mouth"></div>
+            </div>
+            <div class="body">
+                <div class="button b1"></div>
+                <div class="button b2"></div>
+                <div class="button b3"></div>
+            </div>
+        </div>
+        <div id="score-board-left" class="score-board">
+            <div>Lives: <span id="lives">3</span></div>
+            <div>Bullets: <span id="bullets">0</span></div>
+        </div>
+        <div id="score-board-right" class="score-board">
+            <div>Score: <span id="score">0</span></div>
+            <div>High Score: <span id="high-score">0</span></div>
+        </div>
+        <div id="menu">
+            <h2 id="menu-title">Jumping Snowman</h2>
+            <button id="start-btn">Start New Game [N]</button>
+            <button id="resume-btn" style="display: none;">Resume [P]</button>
         </div>
     </div>
-    <div id="score-board-left" class="score-board">
-        <div>Lives: <span id="lives">3</span></div>
-        <div>Bullets: <span id="bullets">0</span></div>
-    </div>
-    <div id="score-board-right" class="score-board">
-        <div>Score: <span id="score">0</span></div>
-        <div>High Score: <span id="high-score">0</span></div>
-    </div>
-    <div id="menu">
-        <h2 id="menu-title">Jumping Snowman</h2>
-        <button id="start-btn">Start New Game [N]</button>
-        <button id="resume-btn" style="display: none;">Resume [P]</button>
-    </div>
-</div>
 
-<div id="instructions">
-    <h3>How to Play</h3>
-    <ul>
-        <li>Jump with <b>Space</b>, shoot with <b>X</b>, pause/resume with <b>P</b>.</li>
-        <li>Jump over the brown rocks. Hitting them costs a life.</li>
-        <li>Collect yellow gems. 10 gems give you 5 bullets.</li>
-        <li>Bullets destroy rocks.</li>
-        <li>As you progress the game gets faster.</li>
-    </ul>
-</div>
+    <div id="instructions">
+        <h3>How to Play</h3>
+        <ul>
+            <li>Jump with <b>Space</b>, shoot with <b>X</b>, pause/resume with <b>P</b>.</li>
+            <li>Jump over the brown rocks. Hitting them costs a life.</li>
+            <li>Collect yellow gems. 10 gems give you 5 bullets.</li>
+            <li>Bullets destroy rocks.</li>
+            <li>As you progress the game gets faster.</li>
+        </ul>
+    </div>
 
-<script src="script.js" defer></script>
-
+    <script src="script.js" defer></script>
 </body>
 </html>
