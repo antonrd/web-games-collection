@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sokoban Classic</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <a href="../index.html" class="back-link">← Back to Home</a>
+    <div class="container">
+
+        <h1>Sokoban Classic</h1>
+
+        <div class="controls">
+            <label for="levelSelect">Select Level:</label>
+            <select id="levelSelect"></select>
+            <button id="resetButton">Reset Level</button>
+            <button id="undoButton">Undo Move</button>
+            <span id="moveCounter">Moves: 0</span>
+        </div>
+
+        <div id="gameBoard"></div>
+        <div id="message">Use arrow keys, W/A/S/D, or on-screen D-pad to move.</div>
+
+        <!-- D-Pad Controls -->
+        <div id="dpadControls">
+            <div></div> <button id="dpadUp" class="dpad-button">↑</button> <div></div>
+            <button id="dpadLeft" class="dpad-button">←</button> <div id="dpadCenter"></div> <button id="dpadRight" class="dpad-button">→</button>
+            <div></div> <button id="dpadDown" class="dpad-button">↓</button> <div></div>
+        </div>
+    </div>
+
+    <script src="levels.js"></script>
+    <script src="script.js"></script>
+
+</body>
+</html>

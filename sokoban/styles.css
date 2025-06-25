@@ -1,0 +1,155 @@
+body {
+  font-family: 'Courier New', Courier, monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #333;
+  color: #eee;
+  margin: 0;
+  padding: 20px;
+}
+.controls {
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+select, button, .dpad-button { /* Added .dpad-button for shared styling */
+  padding: 8px 12px;
+  font-size: 16px;
+  background-color: #555;
+  color: #eee;
+  border: 1px solid #777;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none; /* Prevent text selection on buttons */
+  -webkit-user-select: none;
+}
+select:hover, button:hover, .dpad-button:hover {
+  background-color: #666;
+}
+select:active, button:active, .dpad-button:active {
+  background-color: #777; /* Visual feedback for press */
+}
+#moveCounter {
+  font-size: 16px;
+  padding: 8px 12px;
+  background-color: #444;
+  border: 1px solid #666;
+  border-radius: 4px;
+}
+#gameBoard {
+  display: grid;
+  border: 2px solid #777;
+  background-color: #222;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  margin-bottom: 20px; /* Space before D-pad */
+}
+.cell {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+}
+.wall { background-color: #4a4a4a; color: #4a4a4a; }
+.floor { background-color: #ddd; color: #ddd; }
+.player { background-color: #0b6684; }
+.box {
+  background-color: #583506; /* Dark brown */
+  position: relative;
+}
+.box::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  height: 60%;
+  background-color: #CD853F; /* Light brown */
+}
+.target { background-color: #90ee90; }
+.box-on-target {
+  background-color: #006400; /* Dark green */
+  position: relative;
+}
+.box-on-target::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  height: 60%;
+  background-color: #3CB371; /* Medium Green */
+}
+.player-on-target { background-color: #87cefa; }
+
+#message {
+  margin-top: 10px; /* Reduced margin as D-pad is below board */
+  font-size: 1.2em;
+  color: #ffeb3b;
+  min-height: 1.5em;
+  text-align: center;
+}
+
+/* D-Pad Styles */
+#dpadControls {
+  display: grid;
+  grid-template-columns: repeat(3, 60px); /* Button size */
+  grid-template-rows: repeat(3, 60px);    /* Button size */
+  gap: 5px;
+  justify-content: center; /* Center the D-pad */
+  margin-top: 15px;
+}
+.dpad-button {
+  font-size: 28px; /* Larger font for arrows */
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #606060;
+  border: 2px solid #888;
+  border-radius: 10px;
+}
+#dpadUp { grid-column: 2; grid-row: 1; }
+#dpadLeft { grid-column: 1; grid-row: 2; }
+#dpadCenter { /* Optional: could be an empty div or another button */
+  grid-column: 2; grid-row: 2;
+  background-color: #444; /* Darker center */
+  border-radius: 50%; /* Make it round */
+}
+#dpadRight { grid-column: 3; grid-row: 2; }
+#dpadDown { grid-column: 2; grid-row: 3; }
+
+.back-link {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  text-decoration: none;
+  color: #333;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-family: sans-serif;
+  font-size: 14px;
+  z-index: 1000;
+}
+
+.back-link:hover {
+  background-color: white;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
