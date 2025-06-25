@@ -90,6 +90,17 @@ select:active, button:active, .dpad-button:active {
   height: 60%;
   background-color: #3CB371; /* Medium Green */
 }
+.box-on-target::after {
+  content: '';
+  position: absolute;
+  top: 25%;
+  left: 38%;
+  width: 5px;
+  height: 10px;
+  border: solid #006400; /* Dark Green */
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
 .player-on-target { background-color: #87cefa; }
 
 #message {
