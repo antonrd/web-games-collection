@@ -1,0 +1,17 @@
+Create a two-player game in which at both ends of the screen (left-most and right-most) there are two archors, represented as small human figures with bows.
+
+Each player controls one of the archors and can control the angle at which the bow is raised and the speed with which the arrow will fly out.
+
+The angle and the speed have minimum and maximum values, so that both can be only within certain reasonable ranges.
+
+Between the two archors there are air baloons, which are moving vertically up and down. Each ballon is alternating the movement between a lowest point and a highest point. Different baloons can have different lowest and highest points of their movement.
+
+If an arrow is shot and it hits a baloon it bursts and disappears. This brings one more point to the archer who hit the baloon.
+
+The goal of the players is to hit as many baloons as possible. The player who has more points wins the game.
+
+Each game is also bound by time. There is a timer at the top center of the screen, which counts 2 minutes. When the time is up the game is over and the game states who won. The game can also be a draw if the two players have the same number of points.
+
+Code this in one html file, extract the CSS and JS code to separate files (styles.css and script.js), which are imported in the maim html file (index.html). Put all files in the baloon-archers/ directory.
+
+Feel free to suggest and use popular JS libraries for handling the physics of the moving baloons and the shooting arrows. Also, feel free to use libs if you need to draw things, like the archers, but if you can handle that with html and css, this is preferred.

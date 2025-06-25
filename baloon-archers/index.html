@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balloon Archers</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- The physics simulation will be rendered here -->
+    </div>
+
+    <div id="ui-container">
+        <div class="player-hud" id="player1-hud">
+            <h2>Player 1</h2>
+            <div class="score">Score: <span id="player1-score">0</span></div>
+            <div class="ammo">Arrows: <span id="player1-arrows">20</span></div>
+            <div class="controls">
+                <div>Angle: <span id="player1-angle">45</span>°</div>
+                <div>Power: <span id="player1-power">50</span>%</div>
+                <div class="keys"><span>A/D: Angle | W/S: Power | Space: Shoot</span></div>
+            </div>
+        </div>
+
+        <div id="timer-container">
+            Time: <span id="timer">120</span>s
+        </div>
+
+        <div class="player-hud" id="player2-hud">
+            <h2>Player 2</h2>
+            <div class="score">Score: <span id="player2-score">0</span></div>
+            <div class="ammo">Arrows: <span id="player2-arrows">20</span></div>
+            <div class="controls">
+                <div>Angle: <span id="player2-angle">45</span>°</div>
+                <div>Power: <span id="player2-power">50</span>%</div>
+                <div class="keys"><span>←/→: Angle | ↑/↓: Power | Enter: Shoot</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message-overlay" class="hidden">
+        <div id="message-box">
+            <div class="message-content">
+                <h1 id="message-title">Game Over</h1>
+                <div id="final-score">
+                    <span id="final-score-p1">0</span> : <span id="final-score-p2">0</span>
+                </div>
+                <p id="message-text">Player 1 Wins!</p>
+                <button id="restart-btn">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pause-overlay" class="hidden">
+        <h1>PAUSED</h1>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
