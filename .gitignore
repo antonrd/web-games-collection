@@ -36,3 +36,5 @@ yarn-error.log*
 .env.production.local
 
 assets/
+
+spec.txt
