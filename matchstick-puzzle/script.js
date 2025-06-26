@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let solutionEquation = null;
     let puzzle, solution;
     let selectedMatchstick = null;
+    let isPuzzleActive = true;
 
     const digitMap = [
         [1, 1, 1, 1, 1, 1, 0], // 0
@@ -32,6 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function generateNewPuzzle() {
+        isPuzzleActive = true;
+        checkBtn.disabled = false;
+        showSolutionBtn.disabled = false;
         const settings = difficultySettings[currentDifficulty];
         const operators = ['+', '-', '*', '/'];
         let n1, n2, op, res;
@@ -185,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleMatchstickClick(e) {
+        if (!isPuzzleActive) return;
         const target = e.currentTarget;
         if (target.classList.contains('matchstick')) {
             if (selectedMatchstick) selectedMatchstick.classList.remove('selected');
@@ -224,6 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (correct) {
             setMessage('Congratulations! You solved it!', 'success');
+            isPuzzleActive = false;
+            checkBtn.disabled = true;
+            showSolutionBtn.disabled = true;
         } else {
             setMessage('The equation is valid, but not correct. Keep trying!', 'error');
         }
@@ -259,7 +267,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     checkBtn.addEventListener('click', checkSolution);
     newPuzzleBtn.addEventListener('click', generateNewPuzzle);
-    showSolutionBtn.addEventListener('click', () => renderPuzzle(solution));
+    showSolutionBtn.addEventListener('click', () => {
+        puzzle = JSON.parse(JSON.stringify(solution));
+        renderPuzzle(puzzle);
+        setMessage('Solution is shown. Click "New Puzzle" to play again.');
+        isPuzzleActive = false;
+        checkBtn.disabled = true;
+        showSolutionBtn.disabled = true;
+    });
     difficultyControls.addEventListener('click', (e) => {
         if (e.target.classList.contains('difficulty-btn')) {
             difficultyControls.querySelector('.active').classList.remove('active');
