@@ -12,6 +12,7 @@ const T_TUNNEL = 4; // side tunnels
 const PU_FREEZE  = 'freeze';  // ★ star – freeze ghosts 5s
 const PU_FIRE    = 'fire';    // ◆ diamond – fire trail 10s
 const PU_GHOST   = 'ghost';   // 🍌 banana – ghost form 10s
+const PU_BOMB    = 'bomb';    // 💣 bomb – collect and detonate with X (kills ghosts in 5 cells)
 
 // Colours
 const COL_BG       = '#000';
@@ -40,6 +41,7 @@ const FIRE_TRAIL_TTL   = 5000; // each fire square lives 5s
 const GHOSTFORM_DURATION = 10000;
 const SPECIAL_INTERVAL_MIN = 10000;
 const SPECIAL_INTERVAL_MAX = 15000;
+const BOMB_RADIUS = 5; // tiles
 
 // ─── Maze definition (28×31 classic-ish layout) ───────────────────────────────
 // 0=wall, 1=dot, 2=empty, 3=power pellet, 4=tunnel
@@ -84,6 +86,10 @@ let gameState; // 'playing' | 'paused' | 'dead' | 'won' | 'gameover'
 let lastTime = 0;
 let animFrame;
 let gameTimer = 0; // ms elapsed while playing
+let bombs = 0;     // player's bomb inventory
+
+// Bomb explosion animation: { x, y, radius, born, duration }
+let bombExplosion = null;
 
 // Special powerup on board
 let specialPU = null; // { row, col, kind, spawnTime }
@@ -208,6 +214,8 @@ function initGame() {
     specialPU = null;
     specialTimer = randomSpecialInterval();
     gameTimer = 0;
+    bombs = 0;
+    bombExplosion = null;
     gameState = 'playing';
     updateHUD();
     hideMessage();
@@ -225,6 +233,8 @@ function resetAfterDeath() {
     fireTrail = [];
     specialPU = null;
     specialTimer = randomSpecialInterval();
+    bombExplosion = null;
+    // bombs inventory is kept across deaths
     gameState = 'playing';
     lastTime = 0;
 }
@@ -240,6 +250,8 @@ function nextLevel() {
     fireTrail = [];
     specialPU = null;
     specialTimer = randomSpecialInterval();
+    bombExplosion = null;
+    // bombs inventory carries over between levels
     gameState = 'playing';
     updateHUD();
     lastTime = 0;
@@ -258,6 +270,11 @@ function updateHUD() {
     const mm = String(Math.floor(secs / 60)).padStart(2, '0');
     const ss = String(secs % 60).padStart(2, '0');
     document.getElementById('timer').textContent = `${mm}:${ss}`;
+    const bombEl = document.getElementById('bomb-count');
+    if (bombEl) {
+        bombEl.textContent = bombs;
+        document.getElementById('bomb-hud').style.display = bombs > 0 ? 'flex' : 'none';
+    }
 }
 
 function updatePowerStatus() {
@@ -267,6 +284,32 @@ function updatePowerStatus() {
     if (effects.fire > 0)      parts.push(`FIRE ${(effects.fire/1000).toFixed(1)}s`);
     if (effects.ghostForm > 0) parts.push(`GHOST FORM ${(effects.ghostForm/1000).toFixed(1)}s`);
     document.getElementById('powerup-status').textContent = parts.join('  |  ');
+}
+
+// Brief non-blocking notice for cheat activation
+let cheatNotice = null; // { born, duration }
+function showCheatNotice() {
+    cheatNotice = { born: performance.now(), duration: 2000 };
+}
+function drawCheatNotice(now) {
+    if (!cheatNotice) return;
+    const elapsed = Math.max(0, now - cheatNotice.born);
+    if (elapsed >= cheatNotice.duration) { cheatNotice = null; return; }
+    const alpha = elapsed < 300 ? elapsed / 300 : Math.max(0, 1 - (elapsed - 300) / (cheatNotice.duration - 300));
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    const w = CELL * 12, h = CELL * 2.2;
+    const x = (canvas.width - w) / 2, y = CELL * 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 8);
+    ctx.fill();
+    ctx.fillStyle = '#ffdd00';
+    ctx.font = `bold ${CELL * 0.9}px 'Courier New', monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💣 DEMO MODE: +1000 BOMBS!', canvas.width / 2, y + h / 2);
+    ctx.restore();
 }
 
 function showMessage(html) {
@@ -284,6 +327,10 @@ const DIR_MAP = {
     w:[0,-1], s:[0,1], a:[-1,0], d:[1,0],
     W:[0,-1], S:[0,1], A:[-1,0], D:[1,0],
 };
+
+// Cheat code: type B O M B to get 1000 bombs (demo mode)
+const CHEAT_SEQUENCE = ['b','o','m','b'];
+let cheatBuffer = [];
 
 document.addEventListener('keydown', e => {
     const d = DIR_MAP[e.key];
@@ -310,6 +357,18 @@ document.addEventListener('keydown', e => {
     }
     if (e.key === 'Enter') {
         if (gameState === 'gameover') { score = 0; initGame(); }
+    }
+    if (e.key === 'x' || e.key === 'X') {
+        e.preventDefault();
+        detonateBomb();
+    }
+    // Cheat code detection
+    cheatBuffer.push(e.key.toLowerCase());
+    if (cheatBuffer.length > CHEAT_SEQUENCE.length) cheatBuffer.shift();
+    if (cheatBuffer.join('') === CHEAT_SEQUENCE.join('')) {
+        bombs += 1000;
+        updateHUD();
+        showCheatNotice();
     }
 });
 
@@ -453,7 +512,6 @@ function checkDotEat() {
 
 function applySpecialPU(kind) {
     score += 200;
-    updateHUD();
     if (kind === PU_FREEZE) {
         effects.freeze = FREEZE_DURATION;
         ghosts.forEach(g => g.frozen = true);
@@ -461,7 +519,51 @@ function applySpecialPU(kind) {
         effects.fire = FIRE_DURATION;
     } else if (kind === PU_GHOST) {
         effects.ghostForm = GHOSTFORM_DURATION;
+    } else if (kind === PU_BOMB) {
+        bombs++;
     }
+    updateHUD();
+}
+
+function detonateBomb() {
+    if (bombs <= 0 || gameState !== 'playing') return;
+    bombs--;
+    const pr = Math.round((pacman.y - CELL/2) / CELL);
+    const pc = wrapCol(Math.round((pacman.x - CELL/2) / CELL));
+    // Kill ghosts within BOMB_RADIUS tiles (Manhattan distance)
+    ghosts.forEach(g => {
+        if (g.eaten || g.inHouse) return;
+        const gr = Math.round((g.y - CELL/2) / CELL);
+        const gc = wrapCol(Math.round((g.x - CELL/2) / CELL));
+        const dist = Math.abs(gr - pr) + Math.abs(gc - pc);
+        if (dist <= BOMB_RADIUS) {
+            g.eaten = true;
+            g.scared = false;
+            score += 300;
+            setTimeout(() => respawnGhost(g), 3000);
+        }
+    });
+    // Pre-compute non-wall cells within blast radius for the visual
+    const blastCells = [];
+    for (let dr = -BOMB_RADIUS; dr <= BOMB_RADIUS; dr++) {
+        for (let dc = -BOMB_RADIUS; dc <= BOMB_RADIUS; dc++) {
+            if (Math.abs(dr) + Math.abs(dc) > BOMB_RADIUS) continue;
+            const br = pr + dr, bc = wrapCol(pc + dc);
+            if (br < 0 || br >= ROWS) continue;
+            if (maze[br][bc] === T_WALL) continue;
+            blastCells.push([br, bc]);
+        }
+    }
+    // Trigger explosion visual
+    bombExplosion = {
+        x: pacman.x, y: pacman.y,
+        originRow: pr, originCol: pc,
+        cells: blastCells,
+        radius: BOMB_RADIUS * CELL,
+        born: performance.now(),
+        duration: 900,
+    };
+    updateHUD();
 }
 
 // ─── Fire trail ───────────────────────────────────────────────────────────────
@@ -684,7 +786,7 @@ function pacmanDie() {
 }
 
 // ─── Special powerup spawning ─────────────────────────────────────────────────
-const PU_KINDS = [PU_FREEZE, PU_FIRE, PU_GHOST];
+const PU_KINDS_BASE = [PU_FREEZE, PU_FIRE, PU_GHOST];
 
 function spawnSpecialPU() {
     // Find random empty tile not occupied by ghost house area
@@ -700,7 +802,8 @@ function spawnSpecialPU() {
     }
     if (empties.length === 0) return;
     const [row, col] = empties[Math.floor(Math.random() * empties.length)];
-    const kind = PU_KINDS[Math.floor(Math.random() * PU_KINDS.length)];
+    const kinds = level >= 2 ? [...PU_KINDS_BASE, PU_BOMB] : PU_KINDS_BASE;
+    const kind = kinds[Math.floor(Math.random() * kinds.length)];
     specialPU = { row, col, kind, spawnTime: Date.now() };
 }
 
@@ -799,6 +902,9 @@ function drawSpecialPU() {
     } else if (kind === PU_GHOST) {
         // Banana
         drawBanana(ctx, 0, 0);
+    } else if (kind === PU_BOMB) {
+        // Bomb: dark circle with fuse
+        drawBombIcon(ctx, 0, 0, 7);
     }
     ctx.restore();
 }
@@ -854,6 +960,94 @@ function drawBanana(ctx, cx, cy) {
     ctx.arc(cx - 4, cy - 3, 2, 0, Math.PI * 2);
     ctx.fillStyle = '#cc8800';
     ctx.fill();
+    ctx.restore();
+}
+
+function drawBombIcon(ctx, cx, cy, r) {
+    // Body
+    ctx.beginPath();
+    ctx.arc(cx, cy + 1, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#222';
+    ctx.fill();
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Shine
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.3, cy - r * 0.3 + 1, r * 0.25, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fill();
+    // Fuse
+    ctx.beginPath();
+    ctx.moveTo(cx + r * 0.5, cy - r * 0.7 + 1);
+    ctx.quadraticCurveTo(cx + r * 1.0, cy - r * 1.4, cx + r * 0.3, cy - r * 1.7);
+    ctx.strokeStyle = '#aaa';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    // Spark at fuse tip
+    ctx.beginPath();
+    ctx.arc(cx + r * 0.3, cy - r * 1.7, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffdd00';
+    ctx.fill();
+}
+
+function drawBombExplosion(now) {
+    if (!bombExplosion) return;
+    const elapsed = Math.max(0, now - bombExplosion.born);
+    if (elapsed >= bombExplosion.duration) {
+        bombExplosion = null;
+        return;
+    }
+    const t = elapsed / bombExplosion.duration; // 0→1
+    const fade = 1 - t;
+
+    ctx.save();
+
+    // Paint each affected cell with fire colors
+    const { originRow: or, originCol: oc, cells } = bombExplosion;
+    for (const [cr, cc] of cells) {
+        const dist = Math.abs(cr - or) + Math.abs(cc - oc);
+        // Cells closer to centre stay bright longer; outer cells fade sooner
+        const cellFade = Math.max(0, fade - dist * 0.04);
+        if (cellFade <= 0) continue;
+
+        const x = cc * CELL, y = cr * CELL;
+        // Flicker: each cell has a slightly different phase
+        const flicker = 0.75 + 0.25 * Math.sin(now / 60 + cr * 3.1 + cc * 1.7);
+
+        // Core colour: white-yellow → orange → red as t increases
+        let r, g, b;
+        if (t < 0.3) {
+            // white-yellow core
+            r = 255; g = 255; b = Math.round(200 * (1 - t / 0.3));
+        } else if (t < 0.65) {
+            // orange
+            r = 255; g = Math.round(180 * (1 - (t - 0.3) / 0.35)); b = 0;
+        } else {
+            // deep red
+            r = Math.round(255 * (1 - (t - 0.65) / 0.35)); g = 0; b = 0;
+        }
+
+        ctx.globalAlpha = cellFade * flicker * 0.88;
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(x, y, CELL, CELL);
+
+        // Bright inner highlight
+        ctx.globalAlpha = cellFade * flicker * 0.5;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x + 4, y + 4, CELL - 8, CELL - 8);
+    }
+
+    // Expanding shockwave ring on top
+    const ringR = bombExplosion.radius * Math.min(t * 3, 1); // expands fast in first third
+    ctx.globalAlpha = Math.max(0, 1 - t * 2) * 0.9;         // disappears in first half
+    ctx.beginPath();
+    ctx.arc(bombExplosion.x, bombExplosion.y, ringR, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffffa0';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
     ctx.restore();
 }
 
@@ -975,6 +1169,7 @@ function draw(now) {
     drawMaze();
     drawFireTrail(now);
     drawSpecialPU();
+    drawBombExplosion(now);
 
     if (deathAnim.active) {
         const progress = Math.min(deathAnim.timer / deathAnim.duration, 1);
@@ -984,6 +1179,7 @@ function draw(now) {
     }
 
     ghosts.forEach(g => drawGhost(g, now));
+    drawCheatNotice(now);
 }
 
 // ─── Main loop ────────────────────────────────────────────────────────────────

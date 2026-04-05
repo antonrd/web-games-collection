@@ -17,6 +17,9 @@
             <span>Time: <span id="timer">00:00</span></span>
         </div>
         <div id="powerup-status"></div>
+        <div id="bomb-hud" style="display:none;align-items:center;gap:6px;font-size:1em;color:#ff4444;margin-bottom:4px;">
+            <span>💣</span><span id="bomb-count">0</span><span style="font-size:0.8em;color:#aaa;">(press X to use)</span>
+        </div>
         <canvas id="gameCanvas"></canvas>
         <div id="message" class="hidden"></div>
         <div id="dpad">
@@ -30,11 +33,12 @@
             <button id="dDown">↓</button>
             <div></div>
         </div>
-        <p class="instructions">Arrow keys or WASD to move. Eat all dots to advance! Space to pause.</p>
+        <p class="instructions">Arrow keys or WASD to move. Eat all dots to advance! Space to pause. X to detonate bomb.</p>
         <div class="legend">
             <span class="legend-item"><span class="legend-icon star">★</span> Freeze ghosts (5s)</span>
             <span class="legend-item"><span class="legend-icon diamond">◆</span> Fire trail (10s)</span>
             <span class="legend-item"><span class="legend-icon banana">🍌</span> Ghost form (10s)</span>
+            <span class="legend-item"><span class="legend-icon bomb">💣</span> Bomb (level 2+, use X)</span>
         </div>
     </div>
     <script src="script.js"></script>
