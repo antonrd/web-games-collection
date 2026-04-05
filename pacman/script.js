@@ -13,6 +13,7 @@ const PU_FREEZE  = 'freeze';  // ★ star – freeze ghosts 5s
 const PU_FIRE    = 'fire';    // ◆ diamond – fire trail 10s
 const PU_GHOST   = 'ghost';   // 🍌 banana – ghost form 10s
 const PU_BOMB    = 'bomb';    // 💣 bomb – collect and detonate with X (kills ghosts in 5 cells)
+const PU_WALL    = 'wall';    // 🧱 wall – surround current cell with barriers for 5s, use Z
 
 // Colours
 const COL_BG       = '#000';
@@ -42,6 +43,7 @@ const GHOSTFORM_DURATION = 10000;
 const SPECIAL_INTERVAL_MIN = 10000;
 const SPECIAL_INTERVAL_MAX = 15000;
 const BOMB_RADIUS = 5; // tiles
+const WALL_DURATION = 5000; // ms
 
 // ─── Maze definition (28×31 classic-ish layout) ───────────────────────────────
 // 0=wall, 1=dot, 2=empty, 3=power pellet, 4=tunnel
@@ -87,9 +89,13 @@ let lastTime = 0;
 let animFrame;
 let gameTimer = 0; // ms elapsed while playing
 let bombs = 0;     // player's bomb inventory
+let walls = 0;     // player's wall inventory
 
 // Bomb explosion animation: { x, y, radius, born, duration }
 let bombExplosion = null;
+
+// Active wall barrier: { row, col, born } — null when inactive
+let wallBarrier = null;
 
 // Special powerup on board
 let specialPU = null; // { row, col, kind, spawnTime }
@@ -215,7 +221,9 @@ function initGame() {
     specialTimer = randomSpecialInterval();
     gameTimer = 0;
     bombs = 0;
+    walls = 0;
     bombExplosion = null;
+    wallBarrier = null;
     gameState = 'playing';
     updateHUD();
     hideMessage();
@@ -234,7 +242,8 @@ function resetAfterDeath() {
     specialPU = null;
     specialTimer = randomSpecialInterval();
     bombExplosion = null;
-    // bombs inventory is kept across deaths
+    wallBarrier = null;
+    // bombs and walls inventory kept across deaths
     gameState = 'playing';
     lastTime = 0;
 }
@@ -251,7 +260,8 @@ function nextLevel() {
     specialPU = null;
     specialTimer = randomSpecialInterval();
     bombExplosion = null;
-    // bombs inventory carries over between levels
+    wallBarrier = null;
+    // bombs and walls inventory carry over between levels
     gameState = 'playing';
     updateHUD();
     lastTime = 0;
@@ -275,6 +285,11 @@ function updateHUD() {
         bombEl.textContent = bombs;
         document.getElementById('bomb-hud').style.display = bombs > 0 ? 'flex' : 'none';
     }
+    const wallEl = document.getElementById('wall-count');
+    if (wallEl) {
+        wallEl.textContent = walls;
+        document.getElementById('wall-hud').style.display = walls > 0 ? 'flex' : 'none';
+    }
 }
 
 function updatePowerStatus() {
@@ -283,13 +298,17 @@ function updatePowerStatus() {
     if (effects.freeze > 0)    parts.push(`FREEZE ${(effects.freeze/1000).toFixed(1)}s`);
     if (effects.fire > 0)      parts.push(`FIRE ${(effects.fire/1000).toFixed(1)}s`);
     if (effects.ghostForm > 0) parts.push(`GHOST FORM ${(effects.ghostForm/1000).toFixed(1)}s`);
+    if (wallBarrier) {
+        const rem = Math.max(0, WALL_DURATION - (performance.now() - wallBarrier.born));
+        parts.push(`WALL ${(rem/1000).toFixed(1)}s`);
+    }
     document.getElementById('powerup-status').textContent = parts.join('  |  ');
 }
 
 // Brief non-blocking notice for cheat activation
-let cheatNotice = null; // { born, duration }
-function showCheatNotice() {
-    cheatNotice = { born: performance.now(), duration: 2000 };
+let cheatNotice = null; // { msg, born, duration }
+function showCheatNotice(msg) {
+    cheatNotice = { msg, born: performance.now(), duration: 2000 };
 }
 function drawCheatNotice(now) {
     if (!cheatNotice) return;
@@ -298,17 +317,15 @@ function drawCheatNotice(now) {
     const alpha = elapsed < 300 ? elapsed / 300 : Math.max(0, 1 - (elapsed - 300) / (cheatNotice.duration - 300));
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = 'rgba(0,0,0,0.65)';
-    const w = CELL * 12, h = CELL * 2.2;
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    const w = CELL * 14, h = CELL * 2.2;
     const x = (canvas.width - w) / 2, y = CELL * 1.5;
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 8);
-    ctx.fill();
+    ctx.fillRect(x, y, w, h);
     ctx.fillStyle = '#ffdd00';
     ctx.font = `bold ${CELL * 0.9}px 'Courier New', monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('💣 DEMO MODE: +1000 BOMBS!', canvas.width / 2, y + h / 2);
+    ctx.fillText(cheatNotice.msg, canvas.width / 2, y + h / 2);
     ctx.restore();
 }
 
@@ -328,8 +345,7 @@ const DIR_MAP = {
     W:[0,-1], S:[0,1], A:[-1,0], D:[1,0],
 };
 
-// Cheat code: type B O M B to get 1000 bombs (demo mode)
-const CHEAT_SEQUENCE = ['b','o','m','b'];
+// Cheat codes: type "bomb" → +1000 bombs, "wall" → +1000 walls
 let cheatBuffer = [];
 
 document.addEventListener('keydown', e => {
@@ -362,13 +378,22 @@ document.addEventListener('keydown', e => {
         e.preventDefault();
         detonateBomb();
     }
+    if (e.key === 'z' || e.key === 'Z') {
+        e.preventDefault();
+        activateWall();
+    }
     // Cheat code detection
     cheatBuffer.push(e.key.toLowerCase());
-    if (cheatBuffer.length > CHEAT_SEQUENCE.length) cheatBuffer.shift();
-    if (cheatBuffer.join('') === CHEAT_SEQUENCE.join('')) {
+    if (cheatBuffer.length > 4) cheatBuffer.shift();
+    if (cheatBuffer.join('') === 'bomb') {
         bombs += 1000;
         updateHUD();
-        showCheatNotice();
+        showCheatNotice('💣 DEMO MODE: +1000 BOMBS!');
+    }
+    if (cheatBuffer.join('') === 'wall') {
+        walls += 1000;
+        updateHUD();
+        showCheatNotice('🧱 DEMO MODE: +1000 WALLS!');
     }
 });
 
@@ -432,7 +457,7 @@ function movePacman(dt) {
         if (aligned) {
             const nr = tr + pacman.nextDy;
             const nc = wrapCol(tc + pacman.nextDx);
-            if (!isWall(nr, nc)) {
+            if (!isWall(nr, nc) && !isWallBarrierAt(nr, nc)) {
                 pacman.dx = pacman.nextDx;
                 pacman.dy = pacman.nextDy;
                 pacman.x = centerX;
@@ -450,7 +475,7 @@ function movePacman(dt) {
 
     // Clamp to tile center on wall collision
     if (pacman.dx !== 0) {
-        if (isWall(Math.floor(pacman.y / CELL), nextCol)) {
+        if (isWall(Math.floor(pacman.y / CELL), nextCol) || isWallBarrierAt(Math.floor(pacman.y / CELL), nextCol)) {
             pacman.x = centerX;
             pacman.dx = 0;
         } else {
@@ -461,7 +486,7 @@ function movePacman(dt) {
         }
     }
     if (pacman.dy !== 0) {
-        if (isWall(nextRow, Math.floor(pacman.x / CELL))) {
+        if (isWall(nextRow, Math.floor(pacman.x / CELL)) || isWallBarrierAt(nextRow, Math.floor(pacman.x / CELL))) {
             pacman.y = centerY;
             pacman.dy = 0;
         } else {
@@ -521,8 +546,29 @@ function applySpecialPU(kind) {
         effects.ghostForm = GHOSTFORM_DURATION;
     } else if (kind === PU_BOMB) {
         bombs++;
+    } else if (kind === PU_WALL) {
+        walls++;
     }
     updateHUD();
+}
+
+function activateWall() {
+    if (walls <= 0 || gameState !== 'playing') return;
+    walls--;
+    const pr = Math.round((pacman.y - CELL/2) / CELL);
+    const pc = wrapCol(Math.round((pacman.x - CELL/2) / CELL));
+    wallBarrier = { row: pr, col: pc, born: performance.now() };
+    updateHUD();
+}
+
+function isWallBarrierAt(r, c) {
+    if (!wallBarrier) return false;
+    // The barrier blocks the 4 cells adjacent to the barrier cell
+    const br = wallBarrier.row, bc = wallBarrier.col;
+    return (r === br && c === bc + 1) ||
+           (r === br && c === bc - 1) ||
+           (r === br + 1 && c === bc) ||
+           (r === br - 1 && c === bc);
 }
 
 function detonateBomb() {
@@ -604,6 +650,7 @@ function bfsDistance(sr, sc, tr, tc, g) {
             if (visited.has(key)) continue;
             if (!isPassableForGhost(nr, nc)) continue;
             if (isFireAt(nr, nc)) continue;
+            if (isWallBarrierAt(nr, nc)) continue;
             if (g.exitedHouse && isHouseInterior(nr, nc)) continue;
             if (nr === tr && nc === tc) return d + 1;
             visited.add(key);
@@ -634,12 +681,13 @@ function pickGhostNext(g) {
     const revDx = -g.dx, revDy = -g.dy;
     const DIRS = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
 
-    // Filter to valid moves: no U-turn, passable, not fire, not house if exited
+    // Filter to valid moves: no U-turn, passable, not fire, not wall barrier, not house if exited
     const possible = DIRS.filter(d => {
         if (d.dx === revDx && d.dy === revDy) return false;
         const nr = row + d.dy, nc = wrapCol(col + d.dx);
         if (!isPassableForGhost(nr, nc)) return false;
         if (isFireAt(nr, nc)) return false;
+        if (isWallBarrierAt(nr, nc)) return false;
         if (g.exitedHouse && isHouseInterior(nr, nc)) return false;
         return true;
     });
@@ -648,13 +696,13 @@ function pickGhostNext(g) {
     if (possible.length === 0) {
         // Force U-turn
         const rr = row + revDy, rc = wrapCol(col + revDx);
-        if (isPassableForGhost(rr, rc) && !(g.exitedHouse && isHouseInterior(rr, rc))) {
+        if (isPassableForGhost(rr, rc) && !isWallBarrierAt(rr, rc) && !(g.exitedHouse && isHouseInterior(rr, rc))) {
             chosen = { dx: revDx, dy: revDy };
         } else {
             // Completely enclosed – try any passable direction
             for (const d of DIRS) {
                 const nr = row + d.dy, nc = wrapCol(col + d.dx);
-                if (isPassableForGhost(nr, nc) && !isFireAt(nr, nc)) { chosen = d; break; }
+                if (isPassableForGhost(nr, nc) && !isFireAt(nr, nc) && !isWallBarrierAt(nr, nc)) { chosen = d; break; }
             }
         }
     } else if (possible.length === 1) {
@@ -802,7 +850,7 @@ function spawnSpecialPU() {
     }
     if (empties.length === 0) return;
     const [row, col] = empties[Math.floor(Math.random() * empties.length)];
-    const kinds = level >= 2 ? [...PU_KINDS_BASE, PU_BOMB] : PU_KINDS_BASE;
+    const kinds = level >= 2 ? [...PU_KINDS_BASE, PU_BOMB, PU_WALL] : PU_KINDS_BASE;
     const kind = kinds[Math.floor(Math.random() * kinds.length)];
     specialPU = { row, col, kind, spawnTime: Date.now() };
 }
@@ -830,6 +878,9 @@ function updateEffects(dt) {
     if (effects.ghostForm > 0) {
         effects.ghostForm -= dt;
         if (effects.ghostForm <= 0) effects.ghostForm = 0;
+    }
+    if (wallBarrier && (performance.now() - wallBarrier.born) >= WALL_DURATION) {
+        wallBarrier = null;
     }
 }
 
@@ -905,6 +956,9 @@ function drawSpecialPU() {
     } else if (kind === PU_BOMB) {
         // Bomb: dark circle with fuse
         drawBombIcon(ctx, 0, 0, 7);
+    } else if (kind === PU_WALL) {
+        // Brick icon
+        drawBrickIcon(ctx, 0, 0, 8);
     }
     ctx.restore();
 }
@@ -990,6 +1044,74 @@ function drawBombIcon(ctx, cx, cy, r) {
     ctx.arc(cx + r * 0.3, cy - r * 1.7, 1.5, 0, Math.PI * 2);
     ctx.fillStyle = '#ffdd00';
     ctx.fill();
+}
+
+function drawBrickIcon(ctx, cx, cy, s) {
+    // Two rows of offset bricks in terracotta colours
+    const bw = s, bh = s * 0.5;
+    ctx.fillStyle = '#c0522a';
+    // Top row: two half-bricks
+    ctx.fillRect(cx - s, cy - bh - 1, bw - 1, bh - 1);
+    ctx.fillRect(cx + 1, cy - bh - 1, bw - 1, bh - 1);
+    // Bottom row: offset full brick + half
+    ctx.fillRect(cx - s * 0.5, cy + 1, bw * 1.5 - 1, bh - 1);
+    // Mortar lines (dark gaps already from spacing; add highlight)
+    ctx.fillStyle = '#e8784a';
+    ctx.fillRect(cx - s + 2, cy - bh, bw - 5, 2);
+    ctx.fillRect(cx + 3, cy - bh, bw - 5, 2);
+    ctx.fillRect(cx - s * 0.5 + 2, cy + 2, bw * 1.5 - 5, 2);
+}
+
+function drawWallBarrier(now) {
+    if (!wallBarrier) return;
+    const elapsed = Math.max(0, now - wallBarrier.born);
+    const remaining = WALL_DURATION - elapsed;
+    if (remaining <= 0) return;
+
+    const { row, col } = wallBarrier;
+    const x = col * CELL, y = row * CELL;
+    // Fade out in last second
+    const alpha = remaining < 1000 ? remaining / 1000 : 1;
+    // Slow pulse
+    const pulse = 0.5 + 0.5 * Math.abs(Math.sin(now / 300));
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    // Fill the barrier cell with a semi-transparent tint
+    ctx.fillStyle = `rgba(255,120,30,${0.18 * pulse})`;
+    ctx.fillRect(x, y, CELL, CELL);
+
+    // Draw thick border on all 4 sides of the cell
+    const bw = 4; // border width in px
+    ctx.strokeStyle = `rgba(255,160,40,${0.9 * pulse})`;
+    ctx.lineWidth = bw;
+    ctx.strokeRect(x + bw/2, y + bw/2, CELL - bw, CELL - bw);
+
+    // Draw brick pattern on each of the 4 sides (as coloured segments)
+    const brickCol1 = `rgba(200,80,20,${alpha})`;
+    const brickCol2 = `rgba(240,130,50,${alpha})`;
+    const sides = [
+        [x,            y,            CELL, bw],   // top
+        [x,            y+CELL-bw,    CELL, bw],   // bottom
+        [x,            y,            bw,   CELL],  // left
+        [x+CELL-bw,    y,            bw,   CELL],  // right
+    ];
+    sides.forEach(([sx, sy, sw, sh]) => {
+        const isHoriz = sw > sh;
+        const segCount = isHoriz ? 4 : 3;
+        const segLen = (isHoriz ? sw : sh) / segCount;
+        for (let s = 0; s < segCount; s++) {
+            ctx.fillStyle = s % 2 === 0 ? brickCol1 : brickCol2;
+            if (isHoriz) {
+                ctx.fillRect(sx + s * segLen + 0.5, sy, segLen - 1, sh);
+            } else {
+                ctx.fillRect(sx, sy + s * segLen + 0.5, sw, segLen - 1);
+            }
+        }
+    });
+
+    ctx.restore();
 }
 
 function drawBombExplosion(now) {
@@ -1169,6 +1291,7 @@ function draw(now) {
     drawMaze();
     drawFireTrail(now);
     drawSpecialPU();
+    drawWallBarrier(now);
     drawBombExplosion(now);
 
     if (deathAnim.active) {
