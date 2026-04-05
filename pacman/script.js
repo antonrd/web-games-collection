@@ -1341,6 +1341,7 @@ function loop(ts) {
                 deathAnim.active = false;
                 if (lives <= 0) {
                     gameState = 'gameover';
+                    fireTrail = [];
                     showMessage(`Game Over<br>Score: ${score}<br><button onclick="restartWrapper()">Play Again</button>`);
                 } else {
                     resetAfterDeath();
