@@ -148,6 +148,7 @@ h1 {
 .legend-icon.diamond { color: #ff6600; }
 .legend-icon.banana { color: #ffe44d; }
 .legend-icon.bomb { color: #ff4444; }
+.legend-icon.teleport { color: #cc44ff; }
 
 @media (max-width: 480px) {
     h1 { font-size: 1.4em; }

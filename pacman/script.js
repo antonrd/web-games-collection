@@ -12,8 +12,9 @@ const T_TUNNEL = 4; // side tunnels
 const PU_FREEZE  = 'freeze';  // ★ star – freeze ghosts 5s
 const PU_FIRE    = 'fire';    // ◆ diamond – fire trail 10s
 const PU_GHOST   = 'ghost';   // 🍌 banana – ghost form 10s
-const PU_BOMB    = 'bomb';    // 💣 bomb – collect and detonate with X (kills ghosts in 5 cells)
-const PU_WALL    = 'wall';    // 🧱 wall – surround current cell with barriers for 5s, use Z
+const PU_BOMB     = 'bomb';     // 💣 bomb – collect and detonate with X (kills ghosts in 5 cells)
+const PU_WALL     = 'wall';     // 🧱 wall – surround current cell with barriers for 5s, use Z
+const PU_TELEPORT = 'teleport'; // 🌀 teleport – collect and teleport to random far cell with C
 
 // Colours
 const COL_BG       = '#000';
@@ -44,6 +45,8 @@ const SPECIAL_INTERVAL_MIN = 10000;
 const SPECIAL_INTERVAL_MAX = 15000;
 const BOMB_RADIUS = 5; // tiles
 const WALL_DURATION = 5000; // ms
+const TELEPORT_MIN_DIST = 5; // minimum Manhattan distance for teleport target
+const TELEPORT_ANIM_DURATION = 600; // ms total (300 fade-out + 300 fade-in)
 
 // ─── Maze definition (28×31 classic-ish layout) ───────────────────────────────
 // 0=wall, 1=dot, 2=empty, 3=power pellet, 4=tunnel
@@ -88,14 +91,18 @@ let gameState; // 'playing' | 'paused' | 'dead' | 'won' | 'gameover'
 let lastTime = 0;
 let animFrame;
 let gameTimer = 0; // ms elapsed while playing
-let bombs = 0;     // player's bomb inventory
-let walls = 0;     // player's wall inventory
+let bombs = 0;      // player's bomb inventory
+let walls = 0;      // player's wall inventory
+let teleports = 0;  // player's teleport inventory
 
 // Bomb explosion animation: { x, y, radius, born, duration }
 let bombExplosion = null;
 
 // Active wall barrier: { row, col, born } — null when inactive
 let wallBarrier = null;
+
+// Teleport animation: { fromX, fromY, toX, toY, born, phase:'out'|'in' }
+let teleportAnim = null;
 
 // Special powerup on board
 let specialPU = null; // { row, col, kind, spawnTime }
@@ -222,8 +229,10 @@ function initGame() {
     gameTimer = 0;
     bombs = 0;
     walls = 0;
+    teleports = 0;
     bombExplosion = null;
     wallBarrier = null;
+    teleportAnim = null;
     gameState = 'playing';
     updateHUD();
     hideMessage();
@@ -243,7 +252,8 @@ function resetAfterDeath() {
     specialTimer = randomSpecialInterval();
     bombExplosion = null;
     wallBarrier = null;
-    // bombs and walls inventory kept across deaths
+    teleportAnim = null;
+    // bombs, walls, teleports inventory kept across deaths
     gameState = 'playing';
     lastTime = 0;
 }
@@ -261,7 +271,8 @@ function nextLevel() {
     specialTimer = randomSpecialInterval();
     bombExplosion = null;
     wallBarrier = null;
-    // bombs and walls inventory carry over between levels
+    teleportAnim = null;
+    // bombs, walls, teleports inventory carry over between levels
     gameState = 'playing';
     updateHUD();
     lastTime = 0;
@@ -289,6 +300,11 @@ function updateHUD() {
     if (wallEl) {
         wallEl.textContent = walls;
         document.getElementById('wall-hud').style.display = walls > 0 ? 'flex' : 'none';
+    }
+    const teleEl = document.getElementById('teleport-count');
+    if (teleEl) {
+        teleEl.textContent = teleports;
+        document.getElementById('teleport-hud').style.display = teleports > 0 ? 'flex' : 'none';
     }
 }
 
@@ -382,6 +398,10 @@ document.addEventListener('keydown', e => {
         e.preventDefault();
         activateWall();
     }
+    if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        activateTeleport();
+    }
     // Cheat code detection
     cheatBuffer.push(e.key.toLowerCase());
     if (cheatBuffer.length > 4) cheatBuffer.shift();
@@ -394,6 +414,11 @@ document.addEventListener('keydown', e => {
         walls += 1000;
         updateHUD();
         showCheatNotice('🧱 DEMO MODE: +1000 WALLS!');
+    }
+    if (cheatBuffer.join('') === 'tele') {
+        teleports += 1000;
+        updateHUD();
+        showCheatNotice('🌀 DEMO MODE: +1000 TELEPORTS!');
     }
 });
 
@@ -444,6 +469,7 @@ function tileCenter(r, c) {
 
 // ─── Pacman movement ──────────────────────────────────────────────────────────
 function movePacman(dt) {
+    if (teleportAnim) return; // frozen during teleport animation
     const speed = PACMAN_SPEED * CELL * (dt / 1000);
 
     // Try to turn
@@ -548,6 +574,8 @@ function applySpecialPU(kind) {
         bombs++;
     } else if (kind === PU_WALL) {
         walls++;
+    } else if (kind === PU_TELEPORT) {
+        teleports++;
     }
     updateHUD();
 }
@@ -559,6 +587,50 @@ function activateWall() {
     const pc = wrapCol(Math.round((pacman.x - CELL/2) / CELL));
     wallBarrier = { row: pr, col: pc, born: performance.now() };
     updateHUD();
+}
+
+function activateTeleport() {
+    if (teleports <= 0 || gameState !== 'playing' || teleportAnim) return;
+    const pr = Math.round((pacman.y - CELL/2) / CELL);
+    const pc = wrapCol(Math.round((pacman.x - CELL/2) / CELL));
+
+    // Build list of eligible cells
+    const eligible = [];
+    for (let r = 1; r < ROWS - 1; r++) {
+        for (let c = 1; c < COLS - 1; c++) {
+            const t = maze[r][c];
+            if (t === T_WALL) continue;
+            // Must differ from current cell
+            if (r === pr && c === pc) continue;
+            // Must be at least TELEPORT_MIN_DIST away (Manhattan)
+            if (Math.abs(r - pr) + Math.abs(c - pc) < TELEPORT_MIN_DIST) continue;
+            // No ghost standing on this cell
+            const ghostHere = ghosts.some(g => {
+                if (g.eaten || g.inHouse) return false;
+                const gr = Math.round((g.y - CELL/2) / CELL);
+                const gc = wrapCol(Math.round((g.x - CELL/2) / CELL));
+                return gr === r && gc === c;
+            });
+            if (ghostHere) continue;
+            // No special item on this cell
+            if (specialPU && specialPU.row === r && specialPU.col === c) continue;
+            eligible.push([r, c]);
+        }
+    }
+    if (eligible.length === 0) return; // no valid target, don't consume
+
+    teleports--;
+    updateHUD();
+
+    const [tr, tc] = eligible[Math.floor(Math.random() * eligible.length)];
+    const toX = tc * CELL + CELL/2;
+    const toY = tr * CELL + CELL/2;
+
+    teleportAnim = {
+        fromX: pacman.x, fromY: pacman.y,
+        toX, toY, toRow: tr, toCol: tc,
+        born: performance.now(),
+    };
 }
 
 function isWallBarrierAt(r, c) {
@@ -791,6 +863,7 @@ function moveGhosts(dt, now) {
 
 // ─── Collision ────────────────────────────────────────────────────────────────
 function checkCollisions(now) {
+    if (teleportAnim) return; // no collisions during teleport
     const pr = Math.round((pacman.y - CELL/2) / CELL);
     const pc = wrapCol(Math.round((pacman.x - CELL/2) / CELL));
 
@@ -850,7 +923,7 @@ function spawnSpecialPU() {
     }
     if (empties.length === 0) return;
     const [row, col] = empties[Math.floor(Math.random() * empties.length)];
-    const kinds = level >= 2 ? [...PU_KINDS_BASE, PU_BOMB, PU_WALL] : PU_KINDS_BASE;
+    const kinds = level >= 2 ? [...PU_KINDS_BASE, PU_BOMB, PU_WALL, PU_TELEPORT] : PU_KINDS_BASE;
     const kind = kinds[Math.floor(Math.random() * kinds.length)];
     specialPU = { row, col, kind, spawnTime: Date.now() };
 }
@@ -959,6 +1032,9 @@ function drawSpecialPU() {
     } else if (kind === PU_WALL) {
         // Brick icon
         drawBrickIcon(ctx, 0, 0, 8);
+    } else if (kind === PU_TELEPORT) {
+        // Swirl icon
+        drawTeleportIcon(ctx, 0, 0, 7);
     }
     ctx.restore();
 }
@@ -1060,6 +1136,133 @@ function drawBrickIcon(ctx, cx, cy, s) {
     ctx.fillRect(cx - s + 2, cy - bh, bw - 5, 2);
     ctx.fillRect(cx + 3, cy - bh, bw - 5, 2);
     ctx.fillRect(cx - s * 0.5 + 2, cy + 2, bw * 1.5 - 5, 2);
+}
+
+function drawTeleportIcon(ctx, cx, cy, r) {
+    // Spiral / swirl in cyan-purple gradient look
+    ctx.save();
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = '#cc44ff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Inner ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2);
+    ctx.strokeStyle = '#00eeff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Dot in center
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    // Cross-hair lines
+    ctx.strokeStyle = 'rgba(200,100,255,0.7)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r); ctx.stroke();
+    ctx.restore();
+}
+
+function drawTeleportAnim(now) {
+    if (!teleportAnim) return;
+    const elapsed = Math.max(0, now - teleportAnim.born);
+    const half = TELEPORT_ANIM_DURATION / 2;
+
+    if (elapsed < half) {
+        // Phase 1: pacman fades out at fromX/fromY with expanding ring
+        const t = elapsed / half; // 0→1
+        const alpha = 1 - t;
+        const ringR = CELL * 0.5 + t * CELL * 1.5;
+
+        ctx.save();
+        // Fading ring at departure point
+        ctx.globalAlpha = alpha * 0.8;
+        ctx.beginPath();
+        ctx.arc(teleportAnim.fromX, teleportAnim.fromY, ringR, 0, Math.PI * 2);
+        ctx.strokeStyle = '#cc44ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Second smaller ring
+        ctx.beginPath();
+        ctx.arc(teleportAnim.fromX, teleportAnim.fromY, ringR * 0.6, 0, Math.PI * 2);
+        ctx.strokeStyle = '#00eeff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw pacman fading out
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        _drawPacmanAt(teleportAnim.fromX, teleportAnim.fromY);
+        ctx.restore();
+    } else if (elapsed < TELEPORT_ANIM_DURATION) {
+        // Phase 2: pacman fades in at toX/toY with contracting ring
+        const t = (elapsed - half) / half; // 0→1
+        const alpha = t;
+        const ringR = CELL * 2 * (1 - t);
+
+        ctx.save();
+        // Contracting ring at arrival point
+        ctx.globalAlpha = (1 - t) * 0.9;
+        ctx.beginPath();
+        ctx.arc(teleportAnim.toX, teleportAnim.toY, ringR, 0, Math.PI * 2);
+        ctx.strokeStyle = '#cc44ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(teleportAnim.toX, teleportAnim.toY, ringR * 0.6, 0, Math.PI * 2);
+        ctx.strokeStyle = '#00eeff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw pacman fading in
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        _drawPacmanAt(teleportAnim.toX, teleportAnim.toY);
+        ctx.restore();
+    } else {
+        // Animation done — snap pacman to destination
+        pacman.x = teleportAnim.toX;
+        pacman.y = teleportAnim.toY;
+        teleportAnim = null;
+    }
+}
+
+// Draws pacman body at an arbitrary pixel position (used by teleport anim)
+function _drawPacmanAt(px, py) {
+    const r = CELL / 2 - 1;
+    let angle = 0;
+    if (pacman.dx === 1)  angle = 0;
+    if (pacman.dx === -1) angle = Math.PI;
+    if (pacman.dy === -1) angle = -Math.PI / 2;
+    if (pacman.dy === 1)  angle = Math.PI / 2;
+
+    if (effects.ghostForm > 0) {
+        ctx.fillStyle = '#aaffaa';
+        ctx.beginPath();
+        ctx.arc(px, py - 1, r, Math.PI, 0, false);
+        ctx.lineTo(px + r, py + r - 1);
+        const segments = 3, segW = (r * 2) / segments;
+        for (let i = 0; i < segments; i++) {
+            const bx = px + r - segW * i - segW / 2;
+            const by = i % 2 === 0 ? py + r + 2 : py + r - 2;
+            ctx.quadraticCurveTo(bx + segW / 2, by, px + r - segW * (i + 1), py + r - 1);
+        }
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        const col = effects.fire > 0 ? '#ff8800' : COL_PACMAN;
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.arc(px, py, r, angle + pacman.mouthAngle * Math.PI, angle + (2 - pacman.mouthAngle) * Math.PI);
+        ctx.closePath();
+        ctx.fill();
+    }
 }
 
 function drawWallBarrier(now) {
@@ -1297,6 +1500,9 @@ function draw(now) {
     if (deathAnim.active) {
         const progress = Math.min(deathAnim.timer / deathAnim.duration, 1);
         drawDeathAnim(progress);
+    } else if (teleportAnim) {
+        // drawTeleportAnim handles drawing pacman during the animation
+        drawTeleportAnim(now);
     } else {
         drawPacman();
     }
@@ -1342,6 +1548,7 @@ function loop(ts) {
                 if (lives <= 0) {
                     gameState = 'gameover';
                     fireTrail = [];
+                    teleportAnim = null;
                     showMessage(`Game Over<br>Score: ${score}<br><button onclick="restartWrapper()">Play Again</button>`);
                 } else {
                     resetAfterDeath();

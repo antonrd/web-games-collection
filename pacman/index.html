@@ -23,6 +23,9 @@
         <div id="wall-hud" style="display:none;align-items:center;gap:6px;font-size:1em;color:#e8784a;margin-bottom:4px;">
             <span>🧱</span><span id="wall-count">0</span><span style="font-size:0.8em;color:#aaa;">(press Z to use)</span>
         </div>
+        <div id="teleport-hud" style="display:none;align-items:center;gap:6px;font-size:1em;color:#cc44ff;margin-bottom:4px;">
+            <span>🌀</span><span id="teleport-count">0</span><span style="font-size:0.8em;color:#aaa;">(press C to use)</span>
+        </div>
         <canvas id="gameCanvas"></canvas>
         <div id="message" class="hidden"></div>
         <div id="dpad">
@@ -36,13 +39,14 @@
             <button id="dDown">↓</button>
             <div></div>
         </div>
-        <p class="instructions">Arrow keys or WASD to move. Eat all dots to advance! Space to pause. X: bomb. Z: wall.</p>
+        <p class="instructions">Arrow keys or WASD to move. Eat all dots to advance! Space to pause. X: bomb. Z: wall. C: teleport.</p>
         <div class="legend">
             <span class="legend-item"><span class="legend-icon star">★</span> Freeze ghosts (5s)</span>
             <span class="legend-item"><span class="legend-icon diamond">◆</span> Fire trail (10s)</span>
             <span class="legend-item"><span class="legend-icon banana">🍌</span> Ghost form (10s)</span>
             <span class="legend-item"><span class="legend-icon bomb">💣</span> Bomb (level 2+, use X)</span>
             <span class="legend-item"><span class="legend-icon wall">🧱</span> Wall barrier (level 2+, use Z, 5s)</span>
+            <span class="legend-item"><span class="legend-icon teleport">🌀</span> Teleport (level 2+, use C)</span>
         </div>
     </div>
     <script src="script.js"></script>
