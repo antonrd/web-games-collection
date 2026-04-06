@@ -923,7 +923,10 @@ function spawnSpecialPU() {
     }
     if (empties.length === 0) return;
     const [row, col] = empties[Math.floor(Math.random() * empties.length)];
-    const kinds = level >= 2 ? [...PU_KINDS_BASE, PU_BOMB, PU_WALL, PU_TELEPORT] : PU_KINDS_BASE;
+    const kinds = [...PU_KINDS_BASE];
+    if (level >= 2) kinds.push(PU_BOMB);
+    if (level >= 3) kinds.push(PU_WALL);
+    if (level >= 4) kinds.push(PU_TELEPORT);
     const kind = kinds[Math.floor(Math.random() * kinds.length)];
     specialPU = { row, col, kind, spawnTime: Date.now() };
 }
