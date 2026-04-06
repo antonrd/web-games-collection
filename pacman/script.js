@@ -32,7 +32,8 @@ const GHOST_SCARED2 = '#ffffff'; // flashing near end
 
 // Speeds (cells per second)
 const PACMAN_SPEED  = 7.5;
-const GHOST_SPEED   = 5.5;
+const GHOST_SPEED_BASE   = 5.5;
+const GHOST_SPEED_INC    = 0.4; // extra tiles/sec per level
 const GHOST_SCARED_SPEED = 3.5;
 
 // Timings (ms)
@@ -827,7 +828,8 @@ function moveGhosts(dt, now) {
             return;
         }
 
-        const speed = g.scared ? GHOST_SCARED_SPEED : GHOST_SPEED; // tiles/sec
+        const ghostSpeed = Math.min(GHOST_SPEED_BASE + (level - 1) * GHOST_SPEED_INC, PACMAN_SPEED);
+        const speed = g.scared ? GHOST_SCARED_SPEED : ghostSpeed; // tiles/sec
         g.progress += speed * dt / 1000;
 
         // Arrive at one or more tiles this frame
