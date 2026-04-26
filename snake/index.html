@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Snake</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <a href="../index.html" class="back-link">← Back to Home</a>
+
+    <div class="container">
+        <h1>SNAKE</h1>
+
+        <div class="hud">
+            <span>Score: <span id="score">0</span></span>
+            <span>Level: <span id="level">1</span></span>
+            <span>Lives: <span id="lives">❤️❤️❤️</span></span>
+            <span>Next level at: <span id="target">20</span> pts</span>
+        </div>
+
+        <div id="powerup-status"></div>
+
+        <div class="canvas-wrapper">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <div id="dpad">
+            <div></div>
+            <button id="dUp" aria-label="Up">▲</button>
+            <div></div>
+            <button id="dLeft" aria-label="Left">◀</button>
+            <div id="dCenter"></div>
+            <button id="dRight" aria-label="Right">▶</button>
+            <div></div>
+            <button id="dDown" aria-label="Down">▼</button>
+            <div></div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><span class="legend-icon apple">🍎</span> Apple — 1 point</div>
+            <div class="legend-item"><span class="legend-icon cherry">🍒</span> Cherry — 3 points</div>
+            <div class="legend-item"><span class="legend-icon mushroom">🍄</span> Mushroom — slows snake</div>
+            <div class="legend-item"><span class="legend-icon star">⭐</span> Star — pass through once</div>
+        </div>
+    </div>
+
+    <!-- Message overlay -->
+    <div id="message" class="hidden">
+        <div id="message-title"></div>
+        <div id="message-body"></div>
+        <button id="message-btn"></button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

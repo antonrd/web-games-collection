@@ -1,0 +1,228 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #111;
+    color: #eee;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 12px 24px;
+    overflow-x: hidden;
+}
+
+.back-link {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    text-decoration: none;
+    color: #333;
+    background-color: rgba(255, 255, 255, 0.85);
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-family: sans-serif;
+    font-size: 0.85em;
+    z-index: 1000;
+    transition: background-color 0.2s;
+}
+
+.back-link:hover {
+    background-color: #fff;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 560px;
+    gap: 10px;
+}
+
+h1 {
+    color: #4cff72;
+    font-size: 2.4em;
+    letter-spacing: 6px;
+    text-shadow: 0 0 14px #4cff72, 0 0 28px #4cff7280;
+    margin-bottom: 4px;
+}
+
+/* HUD */
+.hud {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px 28px;
+    font-size: 1em;
+    color: #ccc;
+    width: 100%;
+}
+
+.hud span span {
+    color: #4cff72;
+    font-weight: bold;
+}
+
+#powerup-status {
+    min-height: 1.4em;
+    font-size: 0.9em;
+    color: #ffe066;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+/* Canvas */
+.canvas-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+#gameCanvas {
+    border: 3px solid #1e7a3c;
+    background: #000;
+    max-width: 100%;
+    display: block;
+    touch-action: none;
+    box-shadow: 0 0 20px #1e7a3c80;
+}
+
+/* D-pad */
+#dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 56px);
+    grid-template-rows: repeat(3, 56px);
+    gap: 4px;
+    margin-top: 10px;
+}
+
+#dpad button {
+    font-size: 22px;
+    background: #1a1a1a;
+    color: #aaa;
+    border: 2px solid #333;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    transition: background 0.1s, color 0.1s;
+}
+
+#dpad button:hover {
+    background: #2a2a2a;
+    color: #fff;
+}
+
+#dpad button:active {
+    background: #2e7d4a;
+    color: #4cff72;
+    border-color: #4cff72;
+}
+
+#dCenter {
+    background: #0d0d0d !important;
+    border: 2px solid #1a1a1a !important;
+    border-radius: 50% !important;
+    cursor: default !important;
+}
+
+/* Legend */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 20px;
+    margin-top: 6px;
+    font-size: 0.8em;
+    color: #888;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.legend-icon {
+    font-size: 1.1em;
+}
+
+/* Message overlay */
+#message {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 200;
+    padding: 20px;
+}
+
+#message.hidden {
+    display: none;
+}
+
+#message-title {
+    font-size: 2em;
+    color: #4cff72;
+    text-shadow: 0 0 12px #4cff72;
+    letter-spacing: 4px;
+    text-align: center;
+}
+
+#message-body {
+    font-size: 1em;
+    color: #ccc;
+    text-align: center;
+    max-width: 320px;
+    line-height: 1.6;
+}
+
+#message-btn {
+    background: #4cff72;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 32px;
+    font-size: 1.1em;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: background 0.2s, transform 0.1s;
+}
+
+#message-btn:hover {
+    background: #6fffaa;
+    transform: scale(1.04);
+}
+
+#message-btn:active {
+    transform: scale(0.97);
+}
+
+/* Responsive: on very small screens hide legend, shrink hud */
+@media (max-width: 400px) {
+    h1 {
+        font-size: 1.8em;
+    }
+    .hud {
+        font-size: 0.85em;
+        gap: 10px 16px;
+    }
+    .legend {
+        font-size: 0.72em;
+    }
+}
