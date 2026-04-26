@@ -188,7 +188,10 @@ h1 {
     text-align: center;
     max-width: 320px;
     line-height: 1.6;
+    white-space: pre-line;
 }
+
+#message-btn.hidden { display: none; }
 
 #message-btn {
     background: #4cff72;
@@ -212,6 +215,43 @@ h1 {
 #message-btn:active {
     transform: scale(0.97);
 }
+
+/* Difficulty picker */
+#diff-buttons {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+#diff-buttons.hidden { display: none; }
+
+.diff-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-size: 1.05em;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: filter 0.15s, transform 0.1s;
+}
+
+.diff-btn:hover  { filter: brightness(1.2); transform: scale(1.05); }
+.diff-btn:active { transform: scale(0.96); }
+
+.diff-easy   { background: #4cff72; color: #000; }
+.diff-medium { background: #ffe066; color: #000; }
+.diff-hard   { background: #ff5555; color: #fff; }
+
+/* Difficulty badge in HUD */
+#diff-mode {
+    font-weight: bold;
+}
+#diff-mode.easy   { color: #4cff72; }
+#diff-mode.medium { color: #ffe066; }
+#diff-mode.hard   { color: #ff5555; }
 
 /* Responsive: on very small screens hide legend, shrink hud */
 @media (max-width: 400px) {

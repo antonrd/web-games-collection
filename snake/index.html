@@ -17,6 +17,7 @@
             <span>Level: <span id="level">1</span></span>
             <span>Lives: <span id="lives">❤️❤️❤️</span></span>
             <span>Next level at: <span id="target">20</span> pts</span>
+            <span>Mode: <span id="diff-mode">—</span></span>
         </div>
 
         <div id="powerup-status"></div>
@@ -49,7 +50,14 @@
     <div id="message" class="hidden">
         <div id="message-title"></div>
         <div id="message-body"></div>
-        <button id="message-btn"></button>
+        <!-- shown only on the start/game-over screen when picking difficulty -->
+        <div id="diff-buttons" class="hidden">
+            <button id="btn-easy"   class="diff-btn diff-easy">EASY</button>
+            <button id="btn-medium" class="diff-btn diff-medium">MEDIUM</button>
+            <button id="btn-hard"   class="diff-btn diff-hard">HARD</button>
+        </div>
+        <!-- shown for level-up / paused confirmations -->
+        <button id="message-btn" class="hidden"></button>
     </div>
 
     <script src="script.js"></script>

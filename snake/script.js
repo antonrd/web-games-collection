@@ -2,15 +2,9 @@
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CELL          = 20;        // px per grid cell
-const COLS          = 25;
-const ROWS          = 22;
-const POINTS_PER_LVL = 20;       // points needed to advance
-
-// Base move interval in ms (lower = faster)
-const SPEED_BASE    = 200;
-const SPEED_DEC     = 18;        // subtract per speed tier
-const SPEED_MIN     = 80;        // floor
+const CELL = 20;   // px per grid cell
+const COLS = 25;
+const ROWS = 22;
 
 // Special item types
 const ITEM_APPLE    = 'apple';
@@ -25,14 +19,27 @@ const SLOW_DURATION = 6000;
 // Slow multiplier (interval × this)
 const SLOW_FACTOR   = 2.2;
 
-// Obstacle density per level (fraction of empty cells that become walls)
-// Level 1 = 0 obstacles; each level adds a small increment
-const OBS_PER_LEVEL = 4;   // new obstacle segments added per level (beyond 1)
+// Per-difficulty tuning
+// pointsPerLevel  – score needed to advance a level
+// obsPerLevel     – wall segments added each level (level 1 always empty)
+// specialMult     – multiplier on special-item spawn chances (>1 = more frequent)
+// specialSpawnMs  – base interval between special item spawns (ms)
+const DIFFICULTY = {
+    easy:   { pointsPerLevel: 12, obsPerLevel: 2, specialMult: 2.0, specialSpawnMs: 6000 },
+    medium: { pointsPerLevel: 20, obsPerLevel: 4, specialMult: 1.0, specialSpawnMs: 9000 },
+    hard:   { pointsPerLevel: 30, obsPerLevel: 7, specialMult: 0.5, specialSpawnMs: 13000 },
+};
+
+// Base move interval in ms (lower = faster)
+const SPEED_BASE = 200;
+const SPEED_DEC  = 18;   // subtract per speed tier
+const SPEED_MIN  = 80;   // floor
 
 // ─── Game state ──────────────────────────────────────────────────────────────
 
 let canvas, ctx;
-let gameState = 'idle'; // idle | playing | paused | dead | levelup | gameover
+let gameState  = 'idle'; // idle | playing | paused | dead | levelup | gameover
+let difficulty = 'medium';
 let animFrame;
 let lastStepTime = 0;
 let stepInterval = SPEED_BASE;
@@ -66,11 +73,13 @@ const scoreEl      = document.getElementById('score');
 const levelEl      = document.getElementById('level');
 const livesEl      = document.getElementById('lives');
 const targetEl     = document.getElementById('target');
+const diffModeEl   = document.getElementById('diff-mode');
 const puStatusEl   = document.getElementById('powerup-status');
 const msgEl        = document.getElementById('message');
 const msgTitle     = document.getElementById('message-title');
 const msgBody      = document.getElementById('message-body');
 const msgBtn       = document.getElementById('message-btn');
+const diffBtnsEl   = document.getElementById('diff-buttons');
 
 // ─── Initialisation ──────────────────────────────────────────────────────────
 
@@ -80,8 +89,12 @@ function init() {
     canvas.height = ROWS * CELL;
     ctx = canvas.getContext('2d');
 
+    document.getElementById('btn-easy').onclick   = () => { difficulty = 'easy';   startGame(); };
+    document.getElementById('btn-medium').onclick = () => { difficulty = 'medium'; startGame(); };
+    document.getElementById('btn-hard').onclick   = () => { difficulty = 'hard';   startGame(); };
+
     bindInput();
-    showMessage('SNAKE', 'Collect apples to score points.\nAvoid walls and your own tail!\n\n❤️❤️❤️  3 lives to start', 'PLAY', startGame);
+    showDiffPicker('SNAKE', 'Collect apples to score points.\nAvoid walls and your own tail!\n\n❤️❤️❤️  3 lives to start\n\nChoose your difficulty:');
 }
 
 function startGame() {
@@ -119,7 +132,7 @@ function buildGrid() {
 
     if (level <= 1) return;
 
-    const numSegments = (level - 1) * OBS_PER_LEVEL;
+    const numSegments = (level - 1) * DIFFICULTY[difficulty].obsPerLevel;
 
     // We'll place obstacle segments: each is a short straight wall (2-5 cells)
     let placed = 0;
@@ -199,11 +212,10 @@ function pickItemType() {
     const hasMushroom = level >= 3;
     const hasStar     = level >= 4;
 
-    // Weights (out of 1)
-    // Apple is always the most common
-    let cherryChance   = Math.min(0.04 + (level - 2) * 0.012, 0.18);
-    let mushroomChance = hasMushroom ? Math.min(0.03 + (level - 3) * 0.01, 0.12) : 0;
-    let starChance     = hasStar     ? Math.min(0.02 + (level - 4) * 0.008, 0.08) : 0;
+    const mult = DIFFICULTY[difficulty].specialMult;
+    let cherryChance   = Math.min((0.04 + (level - 2) * 0.012) * mult, 0.25);
+    let mushroomChance = hasMushroom ? Math.min((0.03 + (level - 3) * 0.01) * mult, 0.18) : 0;
+    let starChance     = hasStar     ? Math.min((0.02 + (level - 4) * 0.008) * mult, 0.12) : 0;
 
     if (r < starChance)     return ITEM_STAR;
     if (r < starChance + mushroomChance) return ITEM_MUSHROOM;
@@ -276,8 +288,9 @@ let lastSpecialSpawn = 0;
 
 function maybeSpawnSpecial(now) {
     if (level < 2) return;
-    // Spawn interval decreases with level (more frequent specials at higher levels)
-    const spawnInterval = Math.max(4000, 9000 - level * 300);
+    const cfg = DIFFICULTY[difficulty];
+    // Spawn interval shrinks with level but is offset by the difficulty base
+    const spawnInterval = Math.max(3000, cfg.specialSpawnMs - level * 300);
     if (now - lastSpecialSpawn < spawnInterval) return;
     lastSpecialSpawn = now;
 
@@ -339,7 +352,7 @@ function step(ts) {
     if (!hasApple()) spawnItem(ITEM_APPLE);
 
     // Check level completion
-    if (levelScore >= POINTS_PER_LVL) {
+    if (levelScore >= DIFFICULTY[difficulty].pointsPerLevel) {
         gameState = 'levelup';
         showMessage(`LEVEL ${level} CLEAR!`, `Score: ${score}\n\nNext level has more obstacles and\npossibly more special items!`, 'NEXT LEVEL', () => {
             level++;
@@ -385,7 +398,7 @@ function loseLife() {
 
     if (lives <= 0) {
         gameState = 'gameover';
-        showMessage('GAME OVER', `Final Score: ${score}\nReached Level: ${level}`, 'PLAY AGAIN', startGame);
+        showDiffPicker('GAME OVER', `Final Score: ${score}   Level: ${level}\n\nChoose difficulty to play again:`);
     } else {
         // Brief pause then restart position
         gameState = 'dead';
@@ -406,7 +419,9 @@ function loseLife() {
 function updateHUD() {
     scoreEl.textContent  = score;
     levelEl.textContent  = level;
-    targetEl.textContent = POINTS_PER_LVL;
+    targetEl.textContent = DIFFICULTY[difficulty].pointsPerLevel;
+    diffModeEl.textContent  = difficulty.toUpperCase();
+    diffModeEl.className    = difficulty;
 
     const heartsNeeded = lives;
     livesEl.textContent = '❤️'.repeat(Math.max(0, heartsNeeded));
@@ -639,10 +654,17 @@ function showMessage(title, body, btnText, onBtn) {
     msgTitle.textContent = title;
     msgBody.textContent  = body;
     msgBtn.textContent   = btnText;
-    msgBtn.onclick = () => {
-        hideMessage();
-        onBtn();
-    };
+    msgBtn.onclick = () => { hideMessage(); onBtn(); };
+    msgBtn.classList.remove('hidden');
+    diffBtnsEl.classList.add('hidden');
+    msgEl.classList.remove('hidden');
+}
+
+function showDiffPicker(title, body) {
+    msgTitle.textContent = title;
+    msgBody.textContent  = body;
+    msgBtn.classList.add('hidden');
+    diffBtnsEl.classList.remove('hidden');
     msgEl.classList.remove('hidden');
 }
 
