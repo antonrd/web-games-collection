@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worms</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-wrapper">
+        <div id="hud">
+            <div id="team-a-hud" class="team-hud">
+                <div class="team-label team-a-color">Team Red</div>
+                <div id="team-a-worms" class="worm-list"></div>
+            </div>
+            <div id="turn-info">
+                <div id="current-turn-label"></div>
+                <div id="turn-timer"></div>
+                <div id="weapon-label"></div>
+                <div id="wind-label"></div>
+            </div>
+            <div id="team-b-hud" class="team-hud right">
+                <div class="team-label team-b-color">Team Blue</div>
+                <div id="team-b-worms" class="worm-list"></div>
+            </div>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <div id="weapon-bar">
+            <div class="weapon-btn active" data-weapon="bazooka" title="Bazooka [1]">🚀</div>
+            <div class="weapon-btn" data-weapon="grenade" title="Grenade [2]">💣</div>
+            <div class="weapon-btn" data-weapon="shotgun" title="Shotgun [3]">🔫</div>
+            <div class="weapon-btn" data-weapon="airstrike" title="Airstrike [4]">✈️</div>
+            <div class="weapon-btn" data-weapon="mine" title="Dynamite [5]">🧨</div>
+            <div class="weapon-btn" data-weapon="rope" title="Ninja Rope [6]">🪢</div>
+        </div>
+
+        <div id="controls-hint">
+            Arrow keys: move/aim &nbsp;|&nbsp; Space: jump &nbsp;|&nbsp; Enter: fire &nbsp;|&nbsp; 1-6: weapons &nbsp;|&nbsp;
+            Rope: Enter=fire/release, ↑↓=length &nbsp;|&nbsp; Tab: skip turn
+        </div>
+    </div>
+
+    <!-- Overlay screens -->
+    <div id="overlay" class="hidden">
+        <div id="overlay-box">
+            <div id="overlay-title"></div>
+            <div id="overlay-body"></div>
+            <button id="overlay-btn">Play Again</button>
+            <a href="../index.html" id="overlay-home">Back to games</a>
+        </div>
+    </div>
+
+    <div id="start-screen">
+        <div id="start-box">
+            <h1>Worms</h1>
+            <p>Two players, two teams, turn-based artillery combat.</p>
+            <div class="start-options">
+                <label>Worms per team:
+                    <select id="worm-count">
+                        <option value="2">2</option>
+                        <option value="3" selected>3</option>
+                        <option value="4">4</option>
+                    </select>
+                </label>
+                <label>Turn time (s):
+                    <select id="turn-time">
+                        <option value="30">30</option>
+                        <option value="45" selected>45</option>
+                        <option value="60">60</option>
+                    </select>
+                </label>
+            </div>
+            <button id="start-btn">Start Game</button>
+            <a href="../index.html" class="back-link">Back to games</a>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
