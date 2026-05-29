@@ -284,9 +284,17 @@ class Worm {
         const dy  = Math.sin(rad);
         const len = 28;
         ctx.save();
-        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-        ctx.lineWidth = 1.5;
+        // Dark outline for contrast against any background
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 3.5;
         ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(px + WORM_W/2, py + WORM_H*0.5);
+        ctx.lineTo(px + WORM_W/2 + dx * len, py + WORM_H*0.5 + dy * len);
+        ctx.stroke();
+        // Bright orange on top
+        ctx.strokeStyle = 'rgba(255,140,0,0.95)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(px + WORM_W/2, py + WORM_H*0.5);
         ctx.lineTo(px + WORM_W/2 + dx * len, py + WORM_H*0.5 + dy * len);
@@ -331,68 +339,108 @@ class Worm {
         // Gravity — skip if already on ground to prevent oscillation
         if (!this.onGround) {
             this.vy = Math.min(this.vy + GRAVITY, MAX_FALL);
+        } else {
+            this.vy = 0;
         }
 
-        // Move X
-        this.x += this.vx;
-        // Clamp to canvas
-        this.x = Math.max(0, Math.min(CW - WORM_W, this.x));
+        // Sub-step movement so fast-moving worms never tunnel through terrain
+        const speed = Math.max(Math.abs(this.vx), Math.abs(this.vy));
+        const steps = Math.max(1, Math.ceil(speed / 2));
+        const dx = this.vx / steps;
+        const dy = this.vy / steps;
 
-        // Horizontal collision — check leading edge at mid and lower body
-        const leadX = this.vx >= 0 ? this.x + WORM_W : this.x;
-        if (isSolid(leadX, this.y + WORM_H * 0.5) || isSolid(leadX, this.y + WORM_H - 1)) {
-            this.x -= this.vx;
-            // Step up slopes when grounded — scan up to 3 tiles high
-            if (this.onGround) {
-                let stepped = false;
-                for (let s = 1; s <= TILE * 3; s++) {
-                    if (!isSolid(leadX, this.y + WORM_H - 1 - s) &&
-                        !isSolid(leadX, this.y - s)) {
-                        this.y -= s;
-                        this.x += this.vx; // re-apply horizontal move now that we've stepped up
-                        stepped = true;
+        for (let step = 0; step < steps; step++) {
+            // ── X movement ──────────────────────────────────────────────────
+            this.x += dx;
+            this.x = Math.max(0, Math.min(CW - WORM_W, this.x));
+
+            const leadX = dx >= 0 ? this.x + WORM_W : this.x;
+            if (isSolid(leadX, this.y + 1) ||
+                isSolid(leadX, this.y + WORM_H * 0.5) ||
+                isSolid(leadX, this.y + WORM_H - 1)) {
+                this.x -= dx;
+                if (this.onGround) {
+                    let stepped = false;
+                    for (let s = 1; s <= TILE * 3; s++) {
+                        if (!isSolid(leadX, this.y + WORM_H - 1 - s) &&
+                            !isSolid(leadX, this.y - s)) {
+                            this.y -= s;
+                            this.x += dx;
+                            stepped = true;
+                            break;
+                        }
+                    }
+                    if (!stepped) this.vx = 0;
+                } else {
+                    this.vx = 0;
+                }
+            }
+
+            // ── Y movement ──────────────────────────────────────────────────
+            // When grounded with no vertical velocity, handle slope-following
+            // explicitly: step down if the ground has dropped, stay put if it
+            // hasn't. Skipping the full floor-snap avoids the 2px tolerance
+            // bouncing that caused idle micro-bobbing.
+            if (this.onGround && dy === 0) {
+                // Check whether ground still exists directly below
+                const footXs2 = [this.x + 2, this.cx, this.x + WORM_W - 2];
+                let stillGrounded = false;
+                for (const fx of footXs2) {
+                    if (isSolid(fx, this.y + WORM_H)) { stillGrounded = true; break; }
+                }
+                if (!stillGrounded) {
+                    // Terrain dropped — step down up to TILE*3 px to follow it
+                    let dropped = false;
+                    for (let s = 1; s <= TILE * 3; s++) {
+                        let found = false;
+                        for (const fx of footXs2) {
+                            if (isSolid(fx, this.y + WORM_H + s)) { found = true; break; }
+                        }
+                        if (found) {
+                            this.y += s - 1;
+                            dropped = true;
+                            break;
+                        }
+                    }
+                    if (!dropped) this.onGround = false; // walked off a ledge
+                }
+                continue;
+            }
+
+            const prevY = this.y;
+            this.y += dy;
+
+            // Ceiling — check top-left, top-center, top-right
+            const topXs = [this.x + 2, this.cx, this.x + WORM_W - 2];
+            if (topXs.some(fx => isSolid(fx, this.y))) {
+                this.y = Math.ceil(this.y / TILE) * TILE;
+                this.vy = Math.abs(this.vy) * 0.3;
+                continue;
+            }
+
+            // Floor — 3 foot points, 2px scan
+            const footY = this.y + WORM_H;
+            const footXs = [this.x + 2, this.cx, this.x + WORM_W - 2];
+            let snapY = null;
+            for (const fx of footXs) {
+                for (let dfy = 0; dfy <= 2; dfy++) {
+                    if (isSolid(fx, footY + dfy)) {
+                        const tileTop = Math.floor((footY + dfy) / TILE) * TILE;
+                        if (snapY === null || tileTop < snapY) snapY = tileTop;
                         break;
                     }
                 }
-                if (!stepped) this.vx = 0;
+            }
+            if (snapY !== null && footY <= snapY + 2 && this.vy >= 0) {
+                const newY = snapY - WORM_H;
+                if (this.vy > 5) this.fallDist += Math.abs(newY - prevY);
+                this.y = newY;
+                this.vy = 0;
+                this.onGround = true;
+                break; // landed — no need for more sub-steps
             } else {
-                this.vx = 0;
+                this.onGround = false;
             }
-        }
-
-        // Move Y
-        const prevY = this.y;
-        this.y += this.vy;
-
-        // Vertical collision (floor) — find highest solid contact under any foot point
-        const footY = this.y + WORM_H;
-        const footXs = [this.x + 2, this.cx, this.x + WORM_W - 2];
-        let snapY = null;
-        for (const fx of footXs) {
-            // Scan downward from current feet up to a few pixels to find solid tile
-            for (let dy = 0; dy <= TILE + 1; dy++) {
-                if (isSolid(fx, footY + dy)) {
-                    const tileTop = Math.floor((footY + dy) / TILE) * TILE;
-                    if (snapY === null || tileTop < snapY) snapY = tileTop;
-                    break;
-                }
-            }
-        }
-        if (snapY !== null && footY <= snapY + TILE) {
-            const newY = snapY - WORM_H;
-            const fell = newY - prevY;
-            if (this.vy > 5) this.fallDist += Math.abs(fell);
-            this.y = newY;
-            this.vy = 0;
-            this.onGround = true;
-        } else {
-            this.onGround = false;
-        }
-
-        // Ceiling collision
-        if (isSolid(this.cx, this.y)) {
-            this.y = Math.ceil(this.y / TILE) * TILE;
-            this.vy = Math.abs(this.vy) * 0.3;
         }
 
         // Fell in water
@@ -400,8 +448,8 @@ class Worm {
             this.takeDamage(WORM_HP, 'drowned');
         }
 
-        // Friction
-        this.vx *= 0.85;
+        // Friction — stronger on ground to quickly stop knockback sliding
+        this.vx *= this.onGround ? 0.7 : 0.92;
         if (Math.abs(this.vx) < 0.05) this.vx = 0;
     }
 
@@ -516,7 +564,7 @@ class Worm {
             const footY = y + WORM_H;
             let snapY = null;
             for (const fx of footXs) {
-                for (let dy = 0; dy <= TILE + 1; dy++) {
+                for (let dy = 0; dy <= 2; dy++) {
                     if (isSolid(fx, footY + dy)) {
                         const tileTop = Math.floor((footY + dy) / TILE) * TILE;
                         if (snapY === null || tileTop < snapY) snapY = tileTop;
@@ -577,6 +625,24 @@ class Projectile {
             return;
         }
 
+        // Shotgun pellet: check direct worm hit each frame
+        if (this.type === 'shotgun') {
+            const allWorms = [...teamA, ...teamB];
+            for (const w of allWorms) {
+                if (w.dead || w === this.owner) continue;
+                const dx = w.cx - this.x, dy = w.cy - this.y;
+                if (Math.sqrt(dx*dx + dy*dy) < WORM_W) {
+                    w.takeDamage(this.damage, 'bullet');
+                    const spd = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+                    w.vx += (this.vx / spd) * 3;
+                    w.vy += (this.vy / spd) * 3 - 1;
+                    w.onGround = false;
+                    this.active = false;
+                    return;
+                }
+            }
+        }
+
         // Terrain collision
         if (isSolid(this.x, this.y)) {
             if (this.type === 'grenade' && this.bounces < 3) {
@@ -594,8 +660,10 @@ class Projectile {
     explode() {
         if (!this.active) return;
         this.active = false;
-        blastTerrain(this.x, this.y, this.radius);
-        spawnExplosionParticles(this.x, this.y, '#ff8800', 20);
+        const blastR = this.type === 'shotgun' ? 8 : this.radius;
+        blastTerrain(this.x, this.y, blastR);
+        spawnExplosionParticles(this.x, this.y, this.type === 'shotgun' ? '#ffdd88' : '#ff8800', this.type === 'shotgun' ? 6 : 20);
+        if (this.type === 'shotgun') { playSfx('explosion'); return; }
         // Damage worms in radius
         const allWorms = [...teamA, ...teamB];
         for (const w of allWorms) {
@@ -898,18 +966,18 @@ let crateDropTimer = 0;
 let gameRunning = false;
 let wormCount = 3;
 
-// Turn sequence: slot 0=A[0], 1=B[0], 2=A[1], 3=B[1], ...
-// turnSlot advances by 1 each turn, mod (wormCount * 2)
+// turnSlot: 0 = Team A's turn, 1 = Team B's turn
+// teamAIdx / teamBIdx: which worm within that team goes next
 let turnSlot = 0;
+let teamAIdx = 0;
+let teamBIdx = 0;
 
 const TEAM_NAMES_A = ['Alf', 'Beaker', 'Chuck'];
 const TEAM_NAMES_B = ['Xray', 'Yoyo', 'Zap'];
 
 function activeWorm() {
     const team = turnSlot % 2 === 0 ? teamA : teamB;
-    const idx  = Math.floor(turnSlot / 2) % team.length;
-    // Skip dead worms: find next alive in same team (shouldn't normally be needed
-    // since we skip dead slots in advanceTurn, but guard here too)
+    const idx  = turnSlot % 2 === 0 ? teamAIdx : teamBIdx;
     return team[idx];
 }
 
@@ -949,6 +1017,8 @@ function initGame() {
     }
 
     turnSlot = 0;
+    teamAIdx = 0;
+    teamBIdx = 0;
     phase = 'move';
     gameRunning = true;
 
@@ -957,14 +1027,26 @@ function initGame() {
     updateWeaponBar();
 }
 
+function advanceTeamIdx(team, currentIdx) {
+    // Advance to the next alive worm in the team, wrapping around.
+    // The original order is preserved; dead worms are simply skipped.
+    const len = team.length;
+    for (let i = 1; i <= len; i++) {
+        const next = (currentIdx + i) % len;
+        if (!team[next].dead) return next;
+    }
+    return currentIdx; // whole team dead — win condition will fire
+}
+
 function startTurn() {
-    // If the current worm is dead, step forward by 2 (same team, next worm)
-    // until we find a live one on this team. Win condition handles the case
-    // where the whole team is dead.
-    const totalSlots = wormCount * 2;
-    let safety = 0;
-    while (activeWorm().dead && safety++ < wormCount) {
-        turnSlot = (turnSlot + 2) % totalSlots;
+    // Ensure the current index points to a live worm (in case it died mid-turn)
+    const team = turnSlot % 2 === 0 ? teamA : teamB;
+    if (turnSlot % 2 === 0) {
+        if (team[teamAIdx] && team[teamAIdx].dead)
+            teamAIdx = advanceTeamIdx(teamA, teamAIdx);
+    } else {
+        if (team[teamBIdx] && team[teamBIdx].dead)
+            teamBIdx = advanceTeamIdx(teamB, teamBIdx);
     }
 
     const w = activeWorm();
@@ -1001,7 +1083,14 @@ function endTurn() {
 
 function advanceTurn() {
     if (phase === 'end' || phase === 'move') return;
-    turnSlot = (turnSlot + 1) % (wormCount * 2);
+
+    // Advance the index for whichever team just played, then switch teams
+    if (turnSlot % 2 === 0) {
+        teamAIdx = advanceTeamIdx(teamA, teamAIdx);
+    } else {
+        teamBIdx = advanceTeamIdx(teamB, teamBIdx);
+    }
+    turnSlot = (turnSlot + 1) % 2;
 
     crateDropTimer++;
     if (crateDropTimer >= 3) {
@@ -1057,7 +1146,7 @@ document.addEventListener('keydown', e => {
     if (e.code === 'Space') {
         e.preventDefault();
         if (w.onGround && !w.ropeState) {
-            w.vy = -7;
+            w.vy = -4;
             w.onGround = false;
         }
     }
@@ -1090,7 +1179,7 @@ document.addEventListener('keydown', e => {
         if (w.ropeState && w.ropeState.hooked) {
             w.adjustRope(5);
         } else {
-            w.aimAngle = Math.min(0, w.aimAngle + 3);
+            w.aimAngle = Math.min(89, w.aimAngle + 3);
         }
     }
     if (e.code === 'Tab') {
@@ -1154,11 +1243,14 @@ function fireWeapon(w) {
             w.inventory.shotgun--;
             for (let i = -1; i <= 1; i++) {
                 const spread = (Math.random() - 0.5) * 0.15;
+                const pvx = vx * 0.7 + spread * 5;
+                const pvy = vy * 0.7 + spread * 5;
+                const spd = Math.sqrt(pvx*pvx + pvy*pvy);
                 projectiles.push(new Projectile({
-                    x:startX, y:startY,
-                    vx: vx * 0.7 + spread * 5,
-                    vy: vy * 0.7 + spread * 5,
-                    type:'shotgun', radius:18, damage:18, trailMax:6
+                    x: startX + (pvx/spd) * (WORM_W + 2),
+                    y: startY + (pvy/spd) * (WORM_W + 2),
+                    vx: pvx, vy: pvy,
+                    type:'shotgun', radius:18, damage:18, trailMax:6, owner:w
                 }));
             }
             endTurn();
